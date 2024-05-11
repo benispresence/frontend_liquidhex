@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERC20 Token Interface</title>
+    <link rel="stylesheet" href="styles.css">   
+</head>
+<body>
+    <div class="header">
+        <img src="logo.png" alt="Liquid HEX Logo" id="logo">
+        <button id="connectWallet">Connect MetaMask</button>
+        <div id="connectionStatus">Connected: no connection</div>
+    </div>
+    <div class="container">
+        <div class="inputs">
+            <h3>Transfer Liquid HEX</h3>
+            <input type="text" id="recipientAddress" placeholder="Recipient Address">
+            <input type="number" id="tokenAmount" placeholder="Amount (Hearts)">
+            <button id="transferToken">Transfer Liquid HEX</button>
+        </div>
+    </div>
+    <div class="container">
+        <div class="inputs">
+            <h3>Mint Liquid HEX</h3>
+            <input type="number" id="stakeId" placeholder="Stake ID">
+            <input type="number" id="claimAmount" placeholder="Amount (Hearts)">
+            <input type="number" id="startDate" placeholder="Start Time (EPOCH)">
+            <input type="number" id="endDate" placeholder="End Time (EPOCH)">
+            <input type="text" id="claimMerkleProof" placeholder="Merkle Proof (comma-separated)">
+            <input type="text" id="claimSignature" placeholder="Signature (optional)">
+            <button id="claimToken">Mint Liquid HEX</button>
+        </div>
+    </div>
+    <div class="container">
+        <div class="inputs">
+            <h3>Create Signature</h3>
+            <input type="text" id="signatureSender" placeholder="Recipient Address">
+            <input type="number" id="signatureId" placeholder="Stake ID">
+            <input type="number" id="signatureAmount" placeholder="Amount (Hearts)">
+            <button id="createSignature">Generate Signature</button>
+            <div id="signatureOutput">Signature will appear here...</div>
+        </div>
+    </div>
+    <script src="js/web3.min.js"></script>
+    <script src="js/ethers.umd.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
