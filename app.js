@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initializeApp(web3) {
-    const tokenAddress = '';
+    const tokenAddress = '0x1e0D586Ce55581092dF1f35C27Fa8e3A86770Bf9';
     const tokenABI =  [
         {
             "inputs": [
