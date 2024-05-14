@@ -5,7 +5,7 @@ Download this repository to your local PC. It consists of pure HTML, CSS, and Ja
 - [Running on Mac](#running-on-mac)
 - [Running on Windows](#running-on-windows)
 - [Running on Ubuntu](#running-on-ubuntu)
-- [Instructions for Minting Liquid HEX](#instructions-forminting-liquid-hex)
+- [Instructions for Minting Liquid HEX](#instructions-for-minting-liquid-hex)
 
 ## Running on Mac
 
