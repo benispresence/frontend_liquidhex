@@ -5,6 +5,7 @@ Download this repository to your local PC. It consists of pure HTML, CSS, and Ja
 - [Running on Mac](#running-on-mac)
 - [Running on Windows](#running-on-windows)
 - [Running on Ubuntu](#running-on-ubuntu)
+- [Instructions for Minting Liquid HEX](#instructions-forminting-liquid-hex)
 
 ## Running on Mac
 
@@ -165,3 +166,41 @@ With Node.js installed, you can use `http-server`, a simple, zero-configuration 
 - **MetaMask Issues:** Ensure MetaMask is correctly installed in your browser and connected to the appropriate network.
 - **Permissions:** You might need elevated permissions (`sudo`) to install software or use certain ports on Linux.
 - **Firewall:** Ensure that your firewall settings are not blocking the ports used by your server.
+
+
+## Instructions for Minting Liquid HEX
+
+Once you are running the Frontend [http://localhost:8080](http://localhost:8080) or on your preferred local port, you will see the UI as depicted below:
+
+![Frontend UI](frontend_screenshot.png)
+
+You can do 3 things:
+1. Transfer Liquid HEX tokens
+2. Mint Liquid HEX tokens
+3. Create a signature for minting Liquid HEX tokens to a different address
+
+First, you have to connect to MetaMask.
+
+### Writing Amounts in Hearts
+
+In this frontend, you will have to always write the amount of Liquid HEX token in Hearts. This means you have to add 8 zeros to the Liquid HEX amount you want to mint:
+- 1 Liquid HEX = 100,000,000 Liquid Hearts
+
+### Claiming Liquid HEX
+
+When you claim your Liquid HEX, you have to write the timestamp in EPOCH time format into the frontend. When writing the Merkle Proof for the claim, you have to write the hashes separated by a comma.
+
+### Necessary Files
+
+You can find most of the information in a readable format in the `eligible_stakes.csv` file. The Merkle Proofs have to be taken out of the `merkle_tree_proofs.json` file, which can be downloaded with the Frontend here on GitHub in a zip file. The file is too big to be uploaded in its raw format.
+
+To get the exact formats for the frontend inputs, you can also open the `merkle_tree_base.csv` file to get the Start Time and End Time in its EPOCH format and the Amount in Hearts directly. Merkle Proofs still have to be taken out of the `merkle_tree_proofs.json` file.
+
+### Example for Stake ID=3
+
+- **Stake ID:** 3
+- **Amount (Hearts):** 729900000000
+- **Start Time (EPOCH):** 1859760000
+- **End Time (EPOCH):** 1922054399
+- **Merkle Proof (comma-separated):** 0x88bd527b96544e6290984e63b7bfa33685488038da3441be8e99286273bedcab,0x3e3d7b0491ca2e8c9cdc0e13db3563fbe8a2397df0c304e3402efafdcdb9788b,0xace069ca428e8454b4053db28fe4a17a6a78d1bcba30baabe51dac97f21d212a,0x3e72ab0ab2ffb6d469c9af2a09b42b2ce6aee99efad34a2219329f52acf00468,0x0a0eb7f112861f6115a326b9e71924caa5699ab6dee94b929c88097d594fc0fa,0x98b1efd762d06eebc07acb265f32ddbdf4133531d356630a436f58162bbf83e4,0x2270a0e2fb1c17aa52afcc6db0a3eabea52282a1d9049ee7ce981e0f44ab0f8b,0xa7a7c3d30f7c5a78f725b702be6b783a2df13950e6a806c4a1f9d3a53e04d04e,0x65f068552c5c81df97c9454cde6f5c5ede9e59f6ad37b3f52cde691d652ef8fa,0x942a6da0eba5c647f002a6712bdc08d1ab7e80ae4be80500359fb270437c06e8,0xec29bc3a3194fa6fecde9c587c4c950f634ce38e1813458b022c0dce0655885b,0x87e81f401dd465afc1a7ddeb0f80b2bca6d148ede820861ddbd1fa6d1ca7b34f,0x80019772faad331eeaed2605582e0623b12eaa59de7f630f357625dd68c1bdd0,0x46a4ab88cb286defa5599c9ce0c16edd88ef29919fab861cf85a68c0e824f8a9,0x10342b150a10853a2dceabb1ef91ba071f133645f2bf46912312a842609fddf4,0x388812c5f17cf78ed44a1d30bdc18c3234ba243d66220ff4af1d3162c360203c,0x89b5262daf9d0880de3760b54e7f9532b0c056dc6c1f9e14983b4a719ac02270,0xe0b8c309a5432336ca8c1fda5ebdf60606e3235d9506923ba01bbf06daf85ca8
+
