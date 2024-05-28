@@ -1,5 +1,7 @@
 # Run Liquid HEX downloadable DEFI Frontend
 
+PULSECHAIN MAINNET CONTRACT ADDRESS: 0xa73f450E3f17468A64BFdD222b099857Db76634d
+
 Download this repository to your local PC. It consists of pure HTML, CSS, and JavaScript code. You can replace the `ethers.umd.min.js` and `web3.min.js` files with your versions or use the ones provided in the repository for convenience. Please find further instructions below, depending on your OS.
 
 - [Running on Mac](#running-on-mac)
