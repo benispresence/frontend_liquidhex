@@ -484,6 +484,55 @@ function initializeApp(web3) {
         }
     });
 
+	document.getElementById('autoPopulate').addEventListener('click', async () => {
+		const stakeId = document.getElementById('stakeId').value;
+	
+		if (!stakeId) {
+			alert("Please enter a Stake ID.");
+			return;
+		}
+	
+		try {
+			// Load and parse the CSV file
+			const responseCSV = await fetch('merkle_tree_base.csv');
+			const csvText = await responseCSV.text();
+			const csvData = Papa.parse(csvText, { header: true }).data; // Use PapaParse library to parse CSV
+	
+			// Find the row with the matching Stake ID
+			const row = csvData.find(row => row['id'] === stakeId);
+	
+			if (!row) {
+				alert("Stake ID not found in CSV file.");
+				return;
+			}
+	
+			// Fill in the fields from the CSV file
+			document.getElementById('claimAmount').value = row['amount'];
+			document.getElementById('startDate').value = row['minting_start_date'];
+			document.getElementById('endDate').value = row['minting_end_date'];
+	
+			// Load and parse the JSON file
+			const responseJSON = await fetch('merkle_tree_proofs.json');
+			const jsonProofs = await responseJSON.json();
+
+			// Find the Merkle Proof for the Stake ID
+			const proofEntry = jsonProofs[stakeId];
+
+			if (!proofEntry || !proofEntry.proof) {
+				alert("Merkle Proof not found in JSON file.");
+				return;
+			}
+
+			// Fill in the Merkle Proof field
+			document.getElementById('claimMerkleProof').value = proofEntry.proof.join(',');
+
+		} catch (error) {
+			console.error('Error auto populating fields:', error);
+			alert("Error auto populating fields. Check the console for details.");
+		}
+	});
+	
+
     document.getElementById('claimToken').addEventListener('click', async () => {
         const id = document.getElementById('stakeId').value;
         const amount = document.getElementById('claimAmount').value;
