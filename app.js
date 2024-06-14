@@ -511,20 +511,56 @@ function initializeApp(web3) {
 			document.getElementById('startDate').value = row['minting_start_date'];
 			document.getElementById('endDate').value = row['minting_end_date'];
 	
-			// Load and parse the JSON file
-			const responseJSON = await fetch('merkle_tree_proofs.json');
-			const jsonProofs = await responseJSON.json();
+            // List of Merkle Proof CSV files
+            const proofFiles = [
+                'merkle_tree_proofs/merkle_tree_proofs_start_stake_id_3_until_end_stake_id_174231.csv',
+                'merkle_tree_proofs/merkle_tree_proofs_start_stake_id_174242_until_end_stake_id_272449.csv',
+                'merkle_tree_proofs/merkle_tree_proofs_start_stake_id_272460_until_end_stake_id_338663.csv',
+                'merkle_tree_proofs/merkle_tree_proofs_start_stake_id_338667_until_end_stake_id_385896.csv',
+				'merkle_tree_proofs/merkle_tree_proofs_start_stake_id_385899_until_end_stake_id_433470.csv',
+				'merkle_tree_proofs/merkle_tree_proofs_start_stake_id_433472_until_end_stake_id_474864.csv',
+				'merkle_tree_proofs/merkle_tree_proofs_start_stake_id_474866_until_end_stake_id_513074.csv',
+				'merkle_tree_proofs/merkle_tree_proofs_start_stake_id_513075_until_end_stake_id_550468.csv',
+				'merkle_tree_proofs/merkle_tree_proofs_start_stake_id_550469_until_end_stake_id_584350.csv',
+				'merkle_tree_proofs/merkle_tree_proofs_start_stake_id_584351_until_end_stake_id_614067.csv',
+				'merkle_tree_proofs/merkle_tree_proofs_start_stake_id_614069_until_end_stake_id_650060.csv',
+				'merkle_tree_proofs/merkle_tree_proofs_start_stake_id_650062_until_end_stake_id_684853.csv',
+				'merkle_tree_proofs/merkle_tree_proofs_start_stake_id_684854_until_end_stake_id_722051.csv',
+				'merkle_tree_proofs/merkle_tree_proofs_start_stake_id_722054_until_end_stake_id_762413.csv',
+				'merkle_tree_proofs/merkle_tree_proofs_start_stake_id_762417_until_end_stake_id_55555516.csv'
+            ];
 
-			// Find the Merkle Proof for the Stake ID
-			const proofEntry = jsonProofs[stakeId];
+            let proofRow = null;
 
-			if (!proofEntry || !proofEntry.proof) {
-				alert("Merkle Proof not found in JSON file.");
-				return;
-			}
+            // Search through the Merkle Proof CSV files
+            for (const file of proofFiles) {
+                const [startStakeId, endStakeId] = file.match(/_stake_id_(\d+)_until_end_stake_id_(\d+)\.csv$/).slice(1, 3).map(Number);
+                if (stakeId >= startStakeId && stakeId <= endStakeId) {
+                    const responseProofCSV = await fetch(file);
+                    const proofCSVText = await responseProofCSV.text();
+                    const proofCSVData = Papa.parse(proofCSVText, { header: true }).data;
 
-			// Fill in the Merkle Proof field
-			document.getElementById('claimMerkleProof').value = proofEntry.proof.join(',');
+                    proofRow = proofCSVData.find(row => row['stake_id'] == stakeId);
+                    if (proofRow) {
+                        break;
+                    }
+                }
+            }
+
+            if (!proofRow || !proofRow['proof']) {
+                alert("Merkle Proof not found in any CSV file.");
+                return;
+            }
+
+            // Fill in the Merkle Proof field
+            const claimMerkleProofElement = document.getElementById('claimMerkleProof');
+
+            if (claimMerkleProofElement) {
+                claimMerkleProofElement.value = proofRow['proof'];
+            } else {
+                console.error('Merkle Proof element not found.');
+                return;
+            }
 
 		} catch (error) {
 			console.error('Error auto populating fields:', error);

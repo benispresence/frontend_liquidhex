@@ -190,19 +190,20 @@ In this frontend, you will have to always write the amount of Liquid HEX token i
 
 ### Claiming Liquid HEX
 
-When you claim your Liquid HEX, you have to write the timestamp in EPOCH time format into the frontend. When writing the Merkle Proof for the claim, you have to write the hashes separated by a comma.
+As a new feature you can use the auto populate button to auto populate the input fields.
+When you claim your Liquid HEX manually, you have to write the timestamp in EPOCH time format into the frontend. When writing the Merkle Proof for the claim, you have to write the hashes separated by a comma.
 
 ### Necessary Files
 
-You can find most of the information in a readable format in the `eligible_stakes.csv` file. The Merkle Proofs have to be taken out of the `merkle_tree_proofs.json` file, which can be downloaded with the Frontend here on GitHub in a zip file. The file is too big to be uploaded in its raw format.
+You can find most of the information in a readable format in the `eligible_stakes.csv` file. The Merkle Proofs have to be taken out of the files within the `merkle_tree_proofs` folder.
 
-To get the exact formats for the frontend inputs, you can also open the `merkle_tree_base.csv` file to get the Start Time and End Time in its EPOCH format and the Amount in Hearts directly. Merkle Proofs still have to be taken out of the `merkle_tree_proofs.json` file.
+To get the exact formats for the frontend inputs, you can also open the `merkle_tree_base.csv` file to get the Start Time and End Time in its EPOCH format and the Amount in Hearts directly.
 
 ### Example for Stake ID=3
 
 - **Stake ID:** 3
-- **Amount (Hearts):** 729900000000
+- **Amount (Hearts):** 718000000000
 - **Start Time (EPOCH):** 1859760000
 - **End Time (EPOCH):** 1922054399
-- **Merkle Proof (comma-separated):** 0x88bd527b96544e6290984e63b7bfa33685488038da3441be8e99286273bedcab,0x3e3d7b0491ca2e8c9cdc0e13db3563fbe8a2397df0c304e3402efafdcdb9788b,0xace069ca428e8454b4053db28fe4a17a6a78d1bcba30baabe51dac97f21d212a,0x3e72ab0ab2ffb6d469c9af2a09b42b2ce6aee99efad34a2219329f52acf00468,0x0a0eb7f112861f6115a326b9e71924caa5699ab6dee94b929c88097d594fc0fa,0x98b1efd762d06eebc07acb265f32ddbdf4133531d356630a436f58162bbf83e4,0x2270a0e2fb1c17aa52afcc6db0a3eabea52282a1d9049ee7ce981e0f44ab0f8b,0xa7a7c3d30f7c5a78f725b702be6b783a2df13950e6a806c4a1f9d3a53e04d04e,0x65f068552c5c81df97c9454cde6f5c5ede9e59f6ad37b3f52cde691d652ef8fa,0x942a6da0eba5c647f002a6712bdc08d1ab7e80ae4be80500359fb270437c06e8,0xec29bc3a3194fa6fecde9c587c4c950f634ce38e1813458b022c0dce0655885b,0x87e81f401dd465afc1a7ddeb0f80b2bca6d148ede820861ddbd1fa6d1ca7b34f,0x80019772faad331eeaed2605582e0623b12eaa59de7f630f357625dd68c1bdd0,0x46a4ab88cb286defa5599c9ce0c16edd88ef29919fab861cf85a68c0e824f8a9,0x10342b150a10853a2dceabb1ef91ba071f133645f2bf46912312a842609fddf4,0x388812c5f17cf78ed44a1d30bdc18c3234ba243d66220ff4af1d3162c360203c,0x89b5262daf9d0880de3760b54e7f9532b0c056dc6c1f9e14983b4a719ac02270,0xe0b8c309a5432336ca8c1fda5ebdf60606e3235d9506923ba01bbf06daf85ca8
+- **Merkle Proof (comma-separated):** 0x8698f1188b6069053c62dee5520b039d0d4690dd47d582be0240ac892e603169,0x19d93b5756c7a4453172b5691143611d7203d6bf50bc9b74740d0be6fe9b92fd,0x1d3c93e8fe380c175401dd019d9073c5c759764b0218cd134a424225025c56b7,0x5147a0afe64b65024192211db0633414f599860b78e0f2956ed94bcb59727634,0x1f739897cc4b7a134934bf7959ebd71b58655aaf913a32b34b0f9c50e4b0bdff,0x667e8690740c785269bd15f2d005b24207a2ca740618556f64391681aa39b2c3,0xbd22e2307dfb7ee140fb83f069eb435122c767547c50d79081d22ef134614701,0x04d0750a9d354c25cb856c716ae02dd0cc4be16d70c64cf8a7eee81ca6ebd760,0x112de7342aed7d27614a6a58c0517d3f655d54acaa1b9a0d220dbe5a6de739e6,0x8c1af037e423cb19270c845ed0bda53e8f2c0b55807a47f74d429f5aef198240,0x84fa85f08797f12c9b069582de65272357b67451551ae63d11c7ddcb996edae6,0x71a34773aef291851c13c5c37e7f4c71f26693bbffedb8783855d735e449ba30,0x3e08cff058e873e7f533940141fbb9882b5a2fbed360ea9317074d1a44a37114,0xde4f9321acbedd8290f85edcc2719da30349e15928e699ddeef042878134d890,0xd8434c975678dcbdddbe9d7296c9b095d1603a74ab2fd6f0f20467cb69fb293e,0xff698419cf41e0dc644b4242d83f5df1a9b45a338691c59e5905aa17ce926bf4,0xf52a0a89289065ac81a6fb6d7ea1554800bdd0a57fa96f0aefa8a1ceff63c122,0x3ffdcca0dc48200167efbbe8e87e2fe4ba3b76bfa5dd72d9bd459b0b65bca084
 
