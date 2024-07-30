@@ -4,22 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ERC20 Token Interface</title>
-    <link rel="stylesheet" href="styles.css"> 
+    <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/x-icon" href="logo.png">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />  
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
 </head>
 <body>
     <div class="header">
         <img src="logo.png" alt="Liquid HEX Logo" id="logo">
         <button id="connectWallet">Connect MetaMask</button>
         <div id="connectionStatus">Connected: no connection</div>
-<!--
-        <label for="addressSelect">Add address to view:</label>
-        <select name="addressSelect" id="addressSelect">
-        <option value="">--Please choose an option--</option>
-        </select>
--->
-        </div>
+        <button id="goToLanding" style="background: rgba(255, 140, 0, 0.9); border-radius: 15px; border: none;">Back to Info</button>
+    </div>
     <div class="container">
         <div class="inputs">
             <h3>Transfer Liquid HEX</h3>
@@ -71,9 +66,14 @@
     </div>
     <script src="js/web3.min.js"></script>
     <script src="js/ethers.umd.min.js"></script>
-    <!--<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> -->
+    <!--<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>-->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>-->
     <script src="app.js"></script>
+    <script>
+        document.getElementById('goToLanding').addEventListener('click', function() {
+            window.location.href = 'index.html';
+        });
+    </script>
 </body>
 </html>
