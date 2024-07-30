@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Definitive Guide to #LiquidHEX</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            background: rgba(0, 0, 139, 0.5);
+        }
+        .container {
+            width: 80%;
+            margin: auto;
+        }
+        .header {
+            text-align: center;
+            padding: 30px 0;
+        }
+        .header img {
+            max-width: 100px;
+        }
+        .cta-button {
+            background: #f39c12;
+            color: #fff;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .main {
+            text-align: center;
+            padding: 5px 0;
+        }
+        .benefits, .how-it-works, .testimonials, .faq {
+            margin: 40px 0;
+        }
+        .section-title {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .benefits, .how-it-works, .testimonials, .faq {
+            text-align: left;
+        }
+        .benefits ul, .how-it-works ul, .faq ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .benefits li, .how-it-works li, .faq li {
+            background: rgba(255, 165, 0, 0.9);
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .footer {
+            text-align: center;
+            background: rgba(255, 165, 0, 0.9);
+            padding: 20px 0;
+        }
+        .footer a {
+            text-decoration: none;
+            color: #fff;
+            margin: 0 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="logo.png" alt="LiquidHEX Logo">
+        </div>
+        <div class="main">
+            <h1>LiquidHEX</h1>
+            <h2>An eHEX Fork without Sellers</h2>
+            <a href="mint.html" class="cta-button">Mint LiquidHEX</a>
+            <p>Verify the contract address by comparing it here, GitHub, and Telegram to ensure you are interacting with the right contract.</p>
+            <p>Contract Address: 0xa73f450E3f17468A64BFdD222b099857Db76634d</p>
+        </div>
+        <div class="benefits">
+            <h3 class="section-title">Benefits</h3>
+            <ul>
+                <li><strong>What is LiquidHEX?</strong><br>LiquidHEX is a fork of eHEX mintable by the strongest HEX stakers on Pulsechain.</li>
+                <li><strong>What is the Purpose of LiquidHEX?</strong><br>LiquidHEX was designed to demonstrate the strength of HEX stakers through three use cases: Data Production, Education, and scarce Store of Value.</li>
+                <li><strong>Data production</strong><br> It can predict if the strongest stakers will sell or hold their expiring stakes, as you can mint LHEX (LiquidHEX) one year before your original HEX stake matures.</li>
+                <li><strong>Education</strong><br>It helps Hexicans learn about Merkle tree proofs and verify all aspects of the project, including how to run truly decentralized DEFI frontends. Successful users are rewarded with their LHEX tokens.</li>
+                <li><strong>Store of Value</strong><br> It is capped at a total supply of 300 billion, released over 15 years as LHEX stakes expire. Due to its market value and scarcity, it is always sensible to mint LHEX</li>
+            </ul>
+        </div>
+        <div class="how-it-works">
+            <h3 class="section-title">How it works</h3>
+            <ul>
+                <li><strong>What stakes are eligible to mint?</strong><br>Only native active eHEX stakes that are staked longer than 720 days are eligible to mint that were staked before the fork. The Fork-Snapshot happened at Block Number 19947139 (Ethereum). Stakers who have emergency end-staked or net sold more than $50K worth of HEX in USDC pools are excluded from minting. Their stakes were not forked over.</li>
+                <li><strong>Merkle tree proofs</strong><br>A Merkle tree proof in a crypto mintable token scenario uses a hash-based tree structure to verify a participant's inclusion. Each participant's data is hashed into leaf nodes, which are combined to form a single root hash. A Merkle proof provides the necessary hashes to verify a specific participant's data ( in our case the specified mintable amounts) by recomputing the root hash. This method ensures efficient and secure verification of mintable LHEX eligibility.</li>
+                <li><strong>Minting Period</strong><br>Minting can only occur within the period starting one year before your original eHEX stake ends and one year after it ends. For bleeding stakes, you can mint until one year has passed since launch without any penalties.</li>
+            </ul>
+        </div>
+        <div class="how-it-works">
+            <h3 class="section-title">Audit & Verification</h3>
+            <ul>
+                <li><strong>Is the LiquidHEX Contract Address (0xa73…34d) verified?</strong><br>Yes, the contract was verified via Sourcify and it's viewable on the Pulsechain Blockexplorer.</li>
+                <li><strong>Is the LiquidHEX contract audited?</strong><br>Only 61 lines of code are not audited; the rest are audited as they are OpenZeppelin contracts. The 61 lines of code can be AI-audited with your preferred LLM because it is a simple contract. The complexity of LiquidHEX happened in calculating the eligibility and predicted payouts for each individual stake. This calculation was made outside of the Smart Contract keeping the Contract simple. The calculations can be verified by the root hash.</li>
+                <li><strong>What if I am Concerned About Interacting with the LiquidHEX Contract Using My Main Account?</strong><br>A method to mint LHEX to a burner address is available via a signature for those concerned about security.</li>
+            </ul>
+        </div>
+        <div class="faq">
+            <h3 class="section-title">FAQ</h3>
+            <ul>
+                <li><strong>Where is the Frontend?</strong><br>The frontend is available as a downloadable DEFI frontend via the official Github repository.</li>
+                <li><strong>Common Errors in Failed Mint LHEX Transactions</strong><br>
+                    "Invalid Merkle proof": You are either not the eligible address or the parameters are incorrect/formatted incorrectly. Refer to the example in the README file on GitHub.
+                    <br>"ID already claimed": LHEX was already minted for that stake ID.
+                    <br>"Not within the minting window": It is not yet time to mint your LHEX. Check the stake’s minting start and end date.</li>
+                <li><strong>Why is There a Huge Sell Wall?</strong><br>The liquidity address received 30% of the total supply as announced, with 96% locked in a staking ladder for the next 15 years. This liquidity is not for selling but to provide efficient liquidity within the historical price ranges of HEX. The term "sell wall" is misleading as it does not suppress upward price movement. Concerns about the liquidity address pulling liquidity and causing a price fall are speculative and have not occurred. Early adopters take risks for great opportunities, and the majority of the liquidity addresses supply is locked, unlike other tokens. For example note that OA owns 95% of the circulating supply of eHEX and pHEX, and SA owns more than 50% of HDRN. The HEX and HDRN supply of those addresses are not even locked throughout a 15-year period.</li>
+                <li><strong>Why Would Anybody Buy?</strong><br>Users have already bought into LiquidHEX due to its potential of scooping up major supply at low prices. LiquidHEX is scarce!</li>
+            </ul>
+        </div>
+        <div class="footer">
+            <a href="https://t.me/liquidhex">Group Chat</a>
+            <a href="https://github.com/benispresence/liquidhex">Smart Contract Source</a>
+            <a href="https://github.com/benispresence/frontend_liquidhex">Frontend Source</a>
+            <a href="mint.html" class="cta-button">Mint LiquidHEX</a>
+        </div>
+    </div>
+</body>
+</html>
