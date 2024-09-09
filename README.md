@@ -183,6 +183,10 @@ You can do 3 things:
 
 First, you have to connect to MetaMask.
 
+### Easy Minting
+
+You can easily mint via the mint button in the table that appears below the input fields on the mint page after conecting your (Metamask) Wallet.
+
 ### Writing Amounts in Hearts
 
 In this frontend, you will have to always write the amount of Liquid HEX token in Hearts. This means you have to add 8 zeros to the Liquid HEX amount you want to mint:
