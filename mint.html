@@ -12,7 +12,7 @@
         <img src="logo.png" alt="Liquid HEX Logo" id="logo">
         <button id="connectWallet">Connect MetaMask</button>
         <div id="connectionStatus">Connected: no connection</div>
-        <button id="goToLanding" style="background: rgba(255, 140, 0, 0.9); border-radius: 15px; border: none;">Back to Info</button>
+        <button id="goToLanding">Back to Info</button>
     </div>
     <div class="action-buttons">
         <button id="transferBtn">Transfer</button>
@@ -52,6 +52,28 @@
     <script>
         document.getElementById('goToLanding').addEventListener('click', function() {
             window.location.href = 'index.html';
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            function checkMintedRows() {
+                const mintedRows = document.querySelectorAll('#stakesTable tbody tr.minted');
+                console.log('Minted rows:', mintedRows.length);
+                mintedRows.forEach(row => {
+                    console.log('Minted row style:', window.getComputedStyle(row).backgroundColor);
+                    // Force a repaint of the row
+                    row.style.display = 'none';
+                    void row.offsetHeight;
+                    row.style.display = '';
+                });
+
+                if (mintedRows.length === 0) {
+                    // If no minted rows found, check again after 1 second
+                    setTimeout(checkMintedRows, 1000);
+                }
+            }
+
+            // Start checking for minted rows after a short delay
+            setTimeout(checkMintedRows, 1000);
         });
     </script>
 </body>
