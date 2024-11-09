@@ -79,9 +79,9 @@ h3 {
 }
 
 #connectionStatus {
-    margin-left: 20px; /* Space between button and status */
+    margin-left: 20px;
     font-weight: bold;
-    color: yellow; /* Highlight the connection status */
+    color: #E0EFDA; /* Changed from yellow to #E0EFDA */
 }
 
 #stakesTable {
@@ -89,7 +89,7 @@ h3 {
     border-collapse: separate;
     border-spacing: 2px;
     margin-top: 20px;
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: #393424;
     table-layout: fixed;
 }
 
@@ -97,7 +97,7 @@ h3 {
     border: 1px solid rgba(255, 255, 255, 0.3);
     padding: 8px; /* Reduced padding */
     text-align: center; /* Center the text in all cells */
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: #58504A;
     height: 60px; /* Reduced height */
     overflow: hidden;
     text-overflow: ellipsis;
@@ -105,22 +105,39 @@ h3 {
 }
 
 #stakesTable th {
-    background-color: rgba(255, 165, 0, 0.3);
+    background-color: #393424;
     font-weight: bold;
     color: white;
     text-align: center; /* Ensure headers are centered */
 }
 
 #stakesTable tbody tr {
-    height: 60px; /* Reduced height */
+    height: 60px;
+    transition: background-color 0.3s ease;
 }
 
 #stakesTable tbody tr:nth-child(even) {
-    background-color: rgba(0, 0, 0, 0.3);
+    background-color: #58504A;
 }
 
 #stakesTable tbody tr:hover {
-    background-color: rgba(255, 165, 0, 0.2);
+    background-color: rgba(224, 239, 218, 0.2); /* Lighter version of #E0EFDA for hover */
+}
+
+/* New style for minted stakes rows */
+#stakesTable tbody tr.minted {
+    background-color: #E0EFDA !important;
+    color: #393424 !important;
+}
+
+#stakesTable tbody tr.connected-address:not(.minted) {
+    background-color: #e67e22;
+}
+
+/* Override any conflicting styles */
+#stakesTable tbody tr.minted * {
+    background-color: inherit !important;
+    color: inherit !important;
 }
 
 /* Add this to ensure all columns have equal width */
@@ -142,8 +159,8 @@ h3 {
 .action-buttons button {
     margin: 0 10px;
     padding: 10px 20px;
-    background-color: #e67e22;
-    color: black;
+    background-color: #58504A;
+    color: #E0EFDA; /* Changed text color for better contrast */
     border: none;
     border-radius: 5px;
     cursor: pointer;
@@ -151,7 +168,7 @@ h3 {
 }
 
 .action-buttons button:hover {
-    background-color: rgba(255, 165, 0, 0.9);
+    background-color: #6a6156; /* Slightly lighter shade for hover */
     transform: scale(1.05);
 }
 
@@ -203,6 +220,15 @@ h3 {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    background-color: #E0EFDA;
+    color: #393424;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#stakesTable button:hover {
+    background-color: #c8d7c2; /* Slightly darker shade for hover */
 }
 
 /* Add these new styles at the end of your existing styles.css file */
@@ -216,7 +242,7 @@ h3 {
     justify-content: space-between;
     flex-wrap: wrap;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    border: 2px solid #e67e22;
+    border: 2px solid #58504A; /* Changed from #e67e22 to #58504A */
     max-width: 800px;
     width: 100%;
 }
@@ -229,7 +255,7 @@ h3 {
 
 .info-label {
     font-weight: bold;
-    color: #e67e22;
+    color: #393424; /* Changed from #e67e22 to #393424 */
     display: block;
     margin-bottom: 5px;
 }
@@ -256,4 +282,41 @@ h3 {
 
 #stakesTable {
     margin-top: 20px;
+}
+
+#stakesTable tbody tr.connected-address {
+    background-color: #e67e22;
+}
+
+#stakesTable tbody tr.minted {
+    background-color: #E0EFDA;
+    color: #393424;
+}
+
+/* Ensure minted class takes precedence */
+#stakesTable tbody tr.minted.connected-address {
+    background-color: #E0EFDA;
+    color: #393424;
+}
+
+/* Update the "Back to Info" button */
+#goToLanding {
+    background-color: #58504A !important; /* Use !important to override inline style */
+    color: #E0EFDA; /* Change text color for better contrast */
+    border-radius: 15px;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#goToLanding:hover {
+    background-color: #6a6156 !important; /* Slightly lighter shade for hover effect */
+}
+
+/* Update the connection status */
+#connectionStatus {
+    margin-left: 20px;
+    font-weight: bold;
+    color: #E0EFDA; /* Changed from yellow to #E0EFDA */
 }
