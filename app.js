@@ -511,12 +511,15 @@ function initializeApp(web3) {
 
 			let totalAmount = 0;
             let mintedAmount = 0;
-            let upcomingMintableAmount = 0;
+            let currentlyMintableAmount = 0;
+            let lockedMintableAmount = 0;
             let stakeCount = 0;
+            let mintedStakeCount = 0;
 
             // Populate the table with sorted stake data
             for (const stake of stakes) {
                 const row = tableBody.insertRow();
+                row.style = ''; // Reset any inline styles
                 row.insertCell(0).textContent = stake['id'];
                 row.insertCell(1).textContent = stake['eligible_address'];
                 row.insertCell(2).textContent = `${Number(stake['amount'] / 1e8).toLocaleString()} LHEX`; // Format amount with commas and add LHEX ticker
@@ -528,26 +531,51 @@ function initializeApp(web3) {
                 stakeCount++;
 
                 const isClaimed = await isStakeClaimed(stake['id']);
-                console.log(`Stake ID: ${stake['id']}, Is Claimed: ${isClaimed}`);
+                const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
+                const startDate = parseInt(stake['minting_start_date']);
+                const endDate = parseInt(stake['minting_end_date']);
+
                 if (isClaimed) {
                     mintedAmount += amount;
+                    mintedStakeCount++;
+                    row.classList.add('minted');
                     row.insertCell(5).textContent = 'Stake already minted';
-                    row.style.backgroundColor = 'lightgreen'; // Highlight the row for claimed stakes
                 } else {
-                    upcomingMintableAmount += amount;
-                    if (String(stake['eligible_address']).trim().toLowerCase() === connectedAccount) {
-                        row.style.backgroundColor = '#e67e22'; // Highlight the connected MetaMask address stakes
-                        const mintButton = document.createElement('button');
-                        mintButton.textContent = 'Mint';
-                        mintButton.title = 'Mint this stake'; // Add a tooltip
-                        mintButton.addEventListener('click', () => initiateMint(stake));
-                        const buttonCell = row.insertCell(5);
-                        buttonCell.style.padding = '0'; // Remove padding from the cell
-                        buttonCell.appendChild(mintButton);
+                    if (currentTime > endDate) {
+                        // Expired stakes are not counted in any mintable amount
+                    } else if (currentTime < startDate) {
+                        // Locked stakes
+                        lockedMintableAmount += amount;
                     } else {
-                        row.insertCell(5).textContent = ''; // Empty cell for non-connected addresses
+                        // Currently mintable stakes
+                        currentlyMintableAmount += amount;
+                    }
+                    if (String(stake['eligible_address']).trim().toLowerCase() === connectedAccount) {
+                        row.classList.add('connected-address');
+                        const actionCell = row.insertCell(5);
+                        
+                        if (currentTime > endDate) {
+                            // If current time is after end date and stake wasn't minted
+                            actionCell.textContent = 'Expired';
+                        } else if (currentTime < startDate) {
+                            // If current time is before start date
+                            actionCell.textContent = `Locked until ${new Date(startDate * 1000).toLocaleDateString()}`;
+                        } else {
+                            // If within minting period
+                            const mintButton = document.createElement('button');
+                            mintButton.textContent = 'Mint';
+                            mintButton.title = 'Mint this stake';
+                            mintButton.addEventListener('click', () => initiateMint(stake));
+                            actionCell.style.padding = '0';
+                            actionCell.appendChild(mintButton);
+                        }
+                    } else {
+                        row.insertCell(5).textContent = '';
                     }
                 }
+
+                // Force a repaint of the row to ensure styles are applied
+                void row.offsetWidth;
             }
 
             // Create or update the info panel
@@ -561,20 +589,20 @@ function initializeApp(web3) {
 
             infoPanel.innerHTML = `
                 <div class="info-item">
-                    <span class="info-label">Total Mintable:</span>
-                    <span class="info-value">${(totalAmount / 1e8).toLocaleString()} LHEX</span>
+                    <span class="info-label">Currently Mintable:</span>
+                    <span class="info-value">${(currentlyMintableAmount / 1e8).toLocaleString()} LHEX</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">Stake Count:</span>
-                    <span class="info-value">${stakeCount.toLocaleString()}</span>
+                    <span class="info-label">Stakes Minted:</span>
+                    <span class="info-value">${mintedStakeCount} of ${stakeCount}</span>
                 </div>
                 <div class="info-item">
                     <span class="info-label">Minted Amount:</span>
                     <span class="info-value">${(mintedAmount / 1e8).toLocaleString()} LHEX</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">Upcoming Mintable:</span>
-                    <span class="info-value">${(upcomingMintableAmount / 1e8).toLocaleString()} LHEX</span>
+                    <span class="info-label">Locked Mintable:</span>
+                    <span class="info-value">${(lockedMintableAmount / 1e8).toLocaleString()} LHEX</span>
                 </div>
             `;
 		} catch (error) {
