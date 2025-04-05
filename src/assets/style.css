@@ -1,0 +1,366 @@
+body {
+    font-family: Arial, sans-serif;
+    color: #fff;
+    margin: 0;
+    padding: 0;
+    background: rgba(0, 0, 139, 0.5);
+}
+
+.container {
+    width: 80%;
+    margin: auto;
+}
+
+.header {
+    text-align: center;
+    padding: 30px 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.header img {
+    max-width: 100px;
+}
+
+#logo {
+    height: 75px;
+    margin-right: 20px;
+}
+
+.cta-button {
+    background: #f39c12;
+    color: #fff;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 5px;
+    display: inline-block;
+    transition: all 0.3s ease;
+}
+
+.cta-button:hover {
+    background-color: rgba(255, 140, 0, 0.9);
+    transform: scale(1.05);
+}
+
+.main {
+    text-align: center;
+    padding: 5px 0;
+}
+
+.benefits, .how-it-works, .testimonials, .faq {
+    margin: 40px 0;
+    text-align: left;
+}
+
+.section-title {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+.benefits ul, .how-it-works ul, .faq ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.benefits li, .how-it-works li, .faq li {
+    background: #393424;
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.footer {
+    text-align: center;
+    background: rgba(255, 165, 0, 0.9);
+    padding: 20px 0;
+}
+
+.footer a {
+    text-decoration: none;
+    color: #fff;
+    margin: 0 10px;
+}
+
+button, input {
+    margin: 5px;
+    padding: 8px;
+    width: 250px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border: none;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+button:hover {
+    background-color: rgba(255, 165, 0, 0.9);
+    cursor: pointer;
+    transform: scale(1.05);
+}
+
+button:active {
+    transform: scale(0.95);
+    background-color: rgba(255, 140, 0, 0.9);
+}
+
+#connectWallet {
+    background-color: #e67e22;
+    color: black;
+    padding: 10px 20px;
+    border-radius: 5px;
+}
+
+#connectionStatus {
+    margin-left: 20px;
+    font-weight: bold;
+    color: #E0EFDA;
+}
+
+#signatureOutput {
+    padding: 10px;
+    margin-top: 5px;
+    background-color: white;
+    color: black;
+    border-radius: 5px;
+    width: calc(100% - 20px);
+}
+
+.container {
+    display: flex;
+    align-items: flex-start;
+    margin-top: 20px;
+}
+
+.inputs, .buttons {
+    display: flex;
+    flex-direction: column;
+}
+
+.inputs {
+    margin-right: 20px;
+    width: 100%;
+}
+
+h3 {
+    color: #FFF;
+}
+
+#stakesTable {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 2px;
+    margin-top: 20px;
+    background-color: #393424;
+    table-layout: fixed;
+}
+
+#stakesTable th, #stakesTable td {
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 8px;
+    text-align: center;
+    background-color: #58504A;
+    height: 60px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#stakesTable th {
+    background-color: #393424;
+    font-weight: bold;
+    color: white;
+    text-align: center;
+}
+
+#stakesTable tbody tr {
+    height: 60px;
+    transition: background-color 0.3s ease;
+}
+
+#stakesTable tbody tr:nth-child(even) {
+    background-color: #58504A;
+}
+
+#stakesTable tbody tr:hover {
+    background-color: rgba(224, 239, 218, 0.2);
+}
+
+#stakesTable tbody tr.minted {
+    background-color: #E0EFDA !important;
+    color: #393424 !important;
+}
+
+#stakesTable tbody tr.connected-address:not(.minted) {
+    background-color: #e67e22;
+}
+
+#stakesTable tbody tr.minted * {
+    background-color: inherit !important;
+    color: inherit !important;
+}
+
+#stakesTable th:nth-child(1),
+#stakesTable th:nth-child(2),
+#stakesTable th:nth-child(3),
+#stakesTable th:nth-child(4),
+#stakesTable th:nth-child(5),
+#stakesTable th:nth-child(6) {
+    width: 16.66%;
+}
+
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.action-buttons button {
+    margin: 0 10px;
+    padding: 10px 20px;
+    background-color: #58504A;
+    color: #E0EFDA;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.action-buttons button:hover {
+    background-color: #6a6156;
+    transform: scale(1.05);
+}
+
+.popup-container {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.popup-content {
+    background-color: rgba(0, 0, 139, 0.8);
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 600px;
+    border-radius: 10px;
+    position: relative;
+}
+
+.close-btn {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close-btn:hover,
+.close-btn:focus {
+    color: #fff;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#stakesTable button {
+    width: 100%;
+    height: 100%;
+    padding: 4px;
+    margin: 0;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background-color: #E0EFDA;
+    color: #393424;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#stakesTable button:hover {
+    background-color: #c8d7c2;
+}
+
+.info-panel {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 20px;
+    margin: 0 auto 20px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 2px solid #58504A;
+    max-width: 800px;
+    width: 100%;
+}
+
+.info-item {
+    flex: 1;
+    min-width: 200px;
+    margin: 10px;
+}
+
+.info-label {
+    font-weight: bold;
+    color: #e67e22;
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+.info-value {
+    color: white;
+    font-size: 14px;
+}
+
+@media (max-width: 768px) {
+    .info-item {
+        flex-basis: 100%;
+    }
+}
+
+#goToLanding {
+    background-color: #58504A;
+    color: #E0EFDA;
+    padding: 10px 20px;
+    border-radius: 5px;
+    margin-left: 20px;
+    transition: all 0.3s ease;
+}
+
+#goToLanding:hover {
+    background-color: #6a6156;
+}
+
+/* General mobile responsiveness */
+@media (max-width: 768px) {
+    .container {
+        width: 95%;
+    }
+    
+    .header {
+        flex-direction: column;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .action-buttons button {
+        width: 80%;
+        margin: 5px 0;
+    }
+    
+    #stakesTable th, #stakesTable td {
+        font-size: 12px;
+        padding: 4px;
+    }
+} 
