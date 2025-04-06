@@ -217,6 +217,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { ethers } from 'ethers'
 import Papa from 'papaparse'
+import { liquidHexABI, liquidHexAddress } from '../contracts/liquidHexABI.js'
 
 // Mobile menu state
 const menuOpen = ref(false);
@@ -272,135 +273,206 @@ function getPopupTitle() {
 }
 
 // Smart contract configuration
-const tokenAddress = '0xa73f450E3f17468A64BFdD222b099857Db76634d'
-const tokenABI = [
-  // ... abbreviated for brevity, would include full ABI in actual implementation
-  // Main functions needed: balanceOf, claim, transfer, claimTo
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "id",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "mintingStartDate",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "mintingEndDate",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bytes32[]",
-        "name": "merkleProof",
-        "type": "bytes32[]"
-      }
-    ],
-    "name": "claim",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "to",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "transfer",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  }
-]
+const tokenAddress = liquidHexAddress
+const tokenABI = liquidHexABI
 
 // Web3 providers and contract instances
 let provider
 let signer
 let tokenContract
 
+// Supported chain IDs (PulseChain mainnet and testnet)
+const SUPPORTED_CHAINS = [369, 943] // 369 is PulseChain mainnet, 943 is testnet
+
 // Metamask connection
 async function connectToMetaMask() {
   try {
+    console.log("Attempting to connect to MetaMask...")
+    
     if (typeof window.ethereum !== 'undefined') {
-      provider = new ethers.BrowserProvider(window.ethereum)
-      await window.ethereum.request({ method: 'eth_requestAccounts' })
-      signer = await provider.getSigner()
-      account.value = await signer.getAddress()
-      tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer)
+      console.log("MetaMask detected")
       
-      // Once connected, fetch stakes data
-      await fetchAndDisplayStakes(account.value)
+      try {
+        // Request account access
+        console.log("Requesting account access...")
+        await window.ethereum.request({ method: 'eth_requestAccounts' })
+        
+        // Initialize provider
+        console.log("Initializing ethers provider...")
+        provider = new ethers.BrowserProvider(window.ethereum)
+        
+        // Get network information
+        const network = await provider.getNetwork()
+        console.log("Connected to network:", network.name, "- Chain ID:", network.chainId)
+        
+        // Check if on the correct network
+        if (!SUPPORTED_CHAINS.includes(Number(network.chainId))) {
+          console.error(`Wrong network! Connected to chain ID ${network.chainId}, but this app requires PulseChain (Chain ID 369 or 943)`)
+          alert(`Please switch to PulseChain in your MetaMask wallet. Current chain: ${network.name} (${network.chainId}). Required: PulseChain (369 or 943).`)
+          return
+        }
+        
+        // Get signer (wallet)
+        console.log("Getting signer...")
+        signer = await provider.getSigner()
+        
+        // Get account address
+        console.log("Getting account address...")
+        account.value = await signer.getAddress()
+        console.log("Connected account:", account.value)
+        
+        // Initialize contract
+        console.log("Initializing contract instance...")
+        tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer)
+        console.log("Contract instance created:", tokenAddress)
+        
+        // Verify contract connectivity
+        try {
+          const hasAnyId = await tokenContract.hasClaimedId(1)
+          console.log("Successfully connected to contract, test query result:", hasAnyId)
+        } catch (contractError) {
+          console.error("Failed to query contract:", contractError)
+          alert("Failed to connect to the LiquidHEX contract. Make sure you're on PulseChain network.")
+          return
+        }
+        
+        // Once connected, fetch stakes data
+        console.log("Fetching stakes data...")
+        await fetchAndDisplayStakes(account.value)
+      } catch (ethersError) {
+        console.error("Error during Ethers setup:", ethersError)
+        alert(`Error setting up Ethers: ${ethersError.message || ethersError}`)
+      }
     } else {
+      console.error("MetaMask is not installed")
       alert("MetaMask is not installed. Please install MetaMask to use this application.")
     }
   } catch (error) {
     console.error("Error connecting to MetaMask:", error)
-    alert(`Error connecting to MetaMask: ${error.message}`)
+    alert(`Error connecting to MetaMask: ${error.message || error}`)
   }
 }
 
-// Fetch stakes for the connected account
+// Add fetchCSVWithRetry function from the original code
+async function fetchCSVWithRetry(url, maxRetries = 3, retryDelay = 1000) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch ${url}: ${response.status}`)
+      }
+      const csvText = await response.text();
+      return Papa.parse(csvText, { header: true }).data;
+    } catch (error) {
+      console.error(`Attempt ${i + 1} to fetch CSV failed:`, error);
+      if (i === maxRetries - 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, retryDelay));
+    }
+  }
+  throw new Error(`Failed to fetch CSV after ${maxRetries} attempts`);
+}
+
+// Updated fetchAndDisplayStakes to match the original implementation
 async function fetchAndDisplayStakes(address) {
   try {
-    // In a real implementation, this would fetch from your CSV files or API
-    // For this example, we're generating sample data
-    const sampleStakes = [
-      {
-        id: '12345',
-        address: address,
-        amount: ethers.parseEther('1000'),
-        startDate: Math.floor(Date.now() / 1000) - 3600 * 24 * 30, // 30 days ago
-        endDate: Math.floor(Date.now() / 1000) + 3600 * 24 * 30, // 30 days from now
-        minted: false
-      },
-      {
-        id: '67890',
-        address: address,
-        amount: ethers.parseEther('2500'),
-        startDate: Math.floor(Date.now() / 1000) - 3600 * 24 * 60, // 60 days ago
-        endDate: Math.floor(Date.now() / 1000) + 3600 * 24 * 15, // 15 days from now
-        minted: true
-      }
-    ]
+    // Clear any existing stakes
+    stakes.value = []
     
-    stakes.value = sampleStakes
+    if (!account.value) {
+      console.error("No address provided to fetch stakes")
+      return
+    }
     
-    // In a real implementation, check which stakes are already minted
-    for (const stake of stakes.value) {
-      if (!stake.minted) {
-        try {
-          // This would check the contract to see if the stake is already claimed
-          // stake.minted = await tokenContract.isClaimed(stake.id)
-        } catch (error) {
-          console.error(`Error checking if stake ${stake.id} is claimed:`, error)
+    // Ensure account is lowercased for comparison
+    const connectedAccount = String(address).trim().toLowerCase();
+    console.log("Fetching and displaying stakes for account:", connectedAccount);
+
+    // Fetch and parse the main CSV file with retries
+    console.log("Fetching merkle_tree_base.csv...")
+    const csvData = await fetchCSVWithRetry('/merkle_tree_base.csv', 3);
+    console.log("CSV data loaded, found", csvData.length, "rows")
+    
+    // Filter stakes for the connected address
+    const userStakes = csvData.filter(row => {
+      const eligibleAddress = String(row['eligible_address'] || '').trim().toLowerCase();
+      return eligibleAddress === connectedAccount;
+    });
+    
+    console.log("Found", userStakes.length, "stakes for the connected address")
+    
+    // Sort stakes by start date (earliest first)
+    userStakes.sort((a, b) => parseInt(a['minting_start_date']) - parseInt(b['minting_start_date']));
+    
+    let totalAmount = 0;
+    let mintedAmount = 0;
+    let currentlyMintableAmount = 0;
+    let lockedMintableAmount = 0;
+    let stakeCount = 0;
+    let mintedStakeCount = 0;
+    
+    // Populate the stakes with data
+    for (const stake of userStakes) {
+      try {
+        const stakeId = stake['id'];
+        console.log("Processing stake ID:", stakeId);
+        
+        // Make sure stake has all required fields
+        if (!stakeId || !stake['amount'] || !stake['minting_start_date'] || !stake['minting_end_date']) {
+          console.error("Stake missing required fields:", stake);
+          continue;
         }
+        
+        const amount = parseInt(stake['amount']);
+        totalAmount += amount;
+        stakeCount++;
+        
+        const isClaimed = await tokenContract.hasClaimedId(stakeId);
+        const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
+        const startDate = parseInt(stake['minting_start_date']);
+        const endDate = parseInt(stake['minting_end_date']);
+        
+        // Add stake to the display list
+        stakes.value.push({
+          id: stakeId,
+          address: stake['eligible_address'],
+          amount: BigInt(amount),
+          startDate: startDate,
+          endDate: endDate,
+          minted: isClaimed
+        });
+        
+        if (isClaimed) {
+          mintedAmount += amount;
+          mintedStakeCount++;
+        } else {
+          if (currentTime > endDate) {
+            // Expired stakes are not counted in any mintable amount
+          } else if (currentTime < startDate) {
+            // Locked stakes
+            lockedMintableAmount += amount;
+          } else {
+            // Currently mintable stakes
+            currentlyMintableAmount += amount;
+          }
+        }
+      } catch (error) {
+        console.error(`Error processing stake:`, error, stake);
       }
     }
+    
+    console.log("Total stakes loaded:", stakes.value.length);
+    console.log("Stats:", {
+      totalAmount: totalAmount / 1e8,
+      mintedAmount: mintedAmount / 1e8, 
+      currentlyMintableAmount: currentlyMintableAmount / 1e8,
+      lockedMintableAmount: lockedMintableAmount / 1e8,
+      stakeCount,
+      mintedStakeCount
+    });
+    
   } catch (error) {
-    console.error("Error fetching stakes:", error)
-    alert(`Error fetching stakes: ${error.message}`)
+    console.error("Error fetching stakes:", error);
+    alert(`Error fetching stakes: ${error.message}`);
   }
 }
 
@@ -417,30 +489,125 @@ async function initiateMint(stake) {
       return
     }
     
-    // In a real implementation, this would fetch the merkle proof
-    // For this example, we use a placeholder
-    const merkleProof = []
+    console.log("Initiating mint for stake:", stake)
     
-    // Call the contract to mint tokens
-    const tx = await tokenContract.claim(
-      stake.id,
-      stake.amount,
-      stake.startDate,
-      stake.endDate,
-      merkleProof
-    )
+    // Extract stake information
+    const stakeId = stake.id
+    const amount = stake.amount
+    const startDate = stake.startDate
+    const endDate = stake.endDate
+
+    console.log("Looking for merkle proof for stake ID:", stakeId)
     
-    await tx.wait()
-    
-    // Mark the stake as minted after successful transaction
-    const updatedStakes = [...stakes.value]
-    const stakeIndex = updatedStakes.findIndex(s => s.id === stake.id)
-    if (stakeIndex !== -1) {
-      updatedStakes[stakeIndex].minted = true
+    // List of Merkle Proof CSV files
+    const proofFiles = [
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_3_until_end_stake_id_174231.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_174242_until_end_stake_id_272449.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_272460_until_end_stake_id_338663.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_338667_until_end_stake_id_385896.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_385899_until_end_stake_id_433470.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_433472_until_end_stake_id_474864.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_474866_until_end_stake_id_513074.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_513075_until_end_stake_id_550468.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_550469_until_end_stake_id_584350.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_584351_until_end_stake_id_614067.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_614069_until_end_stake_id_650060.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_650062_until_end_stake_id_684853.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_684854_until_end_stake_id_722051.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_722054_until_end_stake_id_762413.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_762417_until_end_stake_id_55555516.csv'
+    ]
+
+    let proofRow = null
+
+    // Search through the Merkle Proof CSV files
+    for (const file of proofFiles) {
+      try {
+        const [startStakeId, endStakeId] = file.match(/_stake_id_(\d+)_until_end_stake_id_(\d+)\.csv$/).slice(1, 3).map(Number)
+        if (Number(stakeId) >= startStakeId && Number(stakeId) <= endStakeId) {
+          console.log(`Stake ID ${stakeId} is in range ${startStakeId}-${endStakeId}, fetching file...`)
+          const response = await fetch(file)
+          if (!response.ok) {
+            console.error(`Failed to fetch ${file}: ${response.status}`)
+            continue
+          }
+          
+          const csvText = await response.text()
+          console.log(`Proof file loaded, size: ${csvText.length} bytes`)
+          
+          const proofCSVData = Papa.parse(csvText, { header: true }).data
+          
+          proofRow = proofCSVData.find(row => row['stake_id'] == stakeId)
+          if (proofRow) {
+            console.log("Found merkle proof for stake ID:", stakeId)
+            break
+          }
+        }
+      } catch (error) {
+        console.error(`Error processing file ${file}:`, error)
+      }
     }
-    stakes.value = updatedStakes
+
+    if (!proofRow || !proofRow['proof']) {
+      alert("Merkle Proof not found in any CSV file.")
+      return
+    }
+
+    const merkleProof = proofRow['proof'].split(',')
+    console.log("Merkle proof loaded:", merkleProof.length, "items")
+
+    const signature = '0x' // Empty signature since we're not using signature-based minting
+
+    // Get current gas prices
+    const gasPrice = await provider.getFeeData()
+    console.log("Current gas price:", gasPrice)
     
-    alert(`Successfully minted LiquidHEX for stake ID ${stake.id}`)
+    const priorityFee = Math.round(Number(gasPrice.maxFeePerGas) * 0.2)
+    const gasLimit = 350000
+    
+    try {
+      console.log("Preparing transaction with params:", {
+        stakeId,
+        amount: amount.toString(),
+        startDate,
+        endDate,
+        proofItems: merkleProof.length
+      })
+      
+      // Call the contract to mint tokens
+      const tx = await tokenContract.claim(
+        stakeId,
+        amount,
+        startDate,
+        endDate,
+        merkleProof,
+        signature,
+        {
+          gasLimit: gasLimit,
+          maxPriorityFeePerGas: priorityFee,
+          maxFeePerGas: gasPrice.maxFeePerGas
+        }
+      )
+      
+      console.log("Transaction sent:", tx.hash)
+      console.log("Waiting for transaction confirmation...")
+      
+      await tx.wait()
+      console.log("Transaction confirmed!")
+      
+      // Mark the stake as minted after successful transaction
+      const updatedStakes = [...stakes.value]
+      const stakeIndex = updatedStakes.findIndex(s => s.id === stakeId)
+      if (stakeIndex !== -1) {
+        updatedStakes[stakeIndex].minted = true
+      }
+      stakes.value = updatedStakes
+      
+      alert(`Successfully minted LiquidHEX for stake ID ${stakeId}`)
+    } catch (txError) {
+      console.error("Error in transaction:", txError)
+      alert(`Error minting: ${txError.message}`)
+    }
   } catch (error) {
     console.error("Error minting:", error)
     alert(`Error minting: ${error.message}`)
@@ -507,7 +674,8 @@ async function handleMint() {
       ethers.parseEther(mintData.value.amount),
       mintData.value.startDate,
       mintData.value.endDate,
-      merkleProofArray
+      merkleProofArray,
+      '0x' // Empty signature since we're not using signature-based minting
     )
     
     await tx.wait()
@@ -584,8 +752,18 @@ function formatAddress(address) {
 function formatAmount(amount) {
   if (!amount) return '-'
   try {
-    return parseFloat(ethers.formatEther(amount)).toFixed(2)
-  } catch {
+    // Convert BigInt to string first, then format
+    const amountString = amount.toString()
+    
+    // Format with commas for thousands separator
+    // Assuming amount is in smallest unit (like wei), divide by 10^8 to get normal units
+    const formattedAmount = (Number(amountString) / 1e8).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })
+    return formattedAmount
+  } catch (error) {
+    console.error("Error formatting amount:", error)
     return amount.toString()
   }
 }
@@ -600,10 +778,43 @@ function formatDate(timestamp) {
 onMounted(() => {
   initializeEmptyTable()
   
-  // Check if MetaMask is already connected
-  if (window.ethereum && window.ethereum.isConnected()) {
-    connectToMetaMask()
+  // Set up event listeners for MetaMask account changes
+  if (window.ethereum) {
+    window.ethereum.on('accountsChanged', async (accounts) => {
+      console.log("MetaMask accounts changed:", accounts)
+      
+      if (accounts.length > 0) {
+        // Clear previous state
+        stakes.value = []
+        
+        // Connect with the new account
+        await connectToMetaMask()
+      } else {
+        // User disconnected all accounts
+        account.value = null
+        stakes.value = []
+        console.log("MetaMask disconnected")
+      }
+    })
+    
+    window.ethereum.on('chainChanged', () => {
+      console.log("MetaMask chain changed, refreshing...")
+      window.location.reload()
+    })
+    
+    // Check if already connected
+    if (window.ethereum.isConnected()) {
+      connectToMetaMask()
+    }
   }
+  
+  // Clean up event listeners on unmount
+  onBeforeUnmount(() => {
+    if (window.ethereum) {
+      window.ethereum.removeAllListeners('accountsChanged')
+      window.ethereum.removeAllListeners('chainChanged')
+    }
+  })
 })
 </script>
 
