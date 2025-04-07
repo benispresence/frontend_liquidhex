@@ -41,6 +41,34 @@
       </div>
     </header>
 
+    <!-- Metrics Overview Section -->
+    <section class="metrics-overview" v-if="account">
+      <div class="metrics-container">
+        <div class="address-display">
+          <span class="address-label">Connected:</span>
+          <span class="address-value">{{ formatAddress(account) }}</span>
+        </div>
+        <div class="metrics-grid">
+          <div class="metric-item">
+            <span class="metric-title">Currently Mintable:</span>
+            <span class="metric-value">{{ formatAmountDisplay(currentlyMintableAmount) }}</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-title">Stakes Minted:</span>
+            <span class="metric-value">{{ mintedStakeCount }}/{{ stakeCount }}</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-title">Minted Amount:</span>
+            <span class="metric-value">{{ formatAmountDisplay(mintedAmount) }}</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-title">Locked Mintable:</span>
+            <span class="metric-value">{{ formatAmountDisplay(lockedMintableAmount) }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Action buttons section -->
     <section class="action-section">
       <h2 class="section-title">Management Actions</h2>
@@ -145,6 +173,18 @@
     <!-- Stakes table section -->
     <section class="stakes-section">
       <h2 class="section-title">Your Eligible Stakes</h2>
+      
+      <!-- Filter options -->
+      <div class="filter-options">
+        <select v-model="statusFilter" class="status-filter">
+          <option value="all">All Stakes</option>
+          <option value="mintable">Mintable</option>
+          <option value="locked">Locked</option>
+          <option value="minted">Minted</option>
+          <option value="expired">Expired</option>
+        </select>
+      </div>
+      
       <div class="stakes-container">
         <div class="stakes-table-wrapper">
           <table class="stakes-table">
@@ -155,28 +195,61 @@
                 <th>Amount</th>
                 <th>Start Date</th>
                 <th>End Date</th>
+                <th>Status</th>
                 <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(stake, index) in stakes" :key="index" :class="{ 'minted': stake.minted, 'connected-address': stake.address === account }">
+              <tr 
+                v-for="(stake, index) in filteredStakes" 
+                :key="index" 
+                :class="{ 
+                  'minted': stake.minted, 
+                  'connected-address': stake.address === account,
+                  'expired-stake': isExpired(stake),
+                  'locked-stake': isLocked(stake)
+                }"
+              >
                 <td>{{ stake.id }}</td>
                 <td>{{ formatAddress(stake.address) }}</td>
                 <td>{{ formatAmount(stake.amount) }}</td>
                 <td>{{ formatDate(stake.startDate) }}</td>
                 <td>{{ formatDate(stake.endDate) }}</td>
+                <td class="stake-status">
+                  <span v-if="stake.minted" class="status-icon minted-icon" title="Minted">✓</span>
+                  <span v-else-if="isExpired(stake)" class="status-icon expired-icon" title="Expired">✗</span>
+                  <span v-else-if="isLocked(stake)" class="status-icon locked-icon" title="Locked">🔒</span>
+                  <span v-else class="status-icon mintable-icon" title="Mintable">✓</span>
+                </td>
                 <td>
                   <button 
-                    v-if="!stake.minted && stake.address === account" 
+                    v-if="!stake.minted && stake.address === account && !isExpired(stake) && !isLocked(stake)" 
                     class="mint-button" 
                     @click="initiateMint(stake)"
                   >
                     Mint
                   </button>
+                  <button 
+                    v-else-if="!stake.minted && stake.address === account && isLocked(stake)" 
+                    class="locked-button" 
+                    disabled
+                    title="Locked until the start date"
+                  >
+                    Locked
+                  </button>
+                  <button 
+                    v-else-if="!stake.minted && stake.address === account && isExpired(stake)" 
+                    class="expired-button" 
+                    disabled
+                    title="Stake has expired"
+                  >
+                    Expired
+                  </button>
                   <span v-else>{{ stake.minted ? 'Minted' : '-' }}</span>
                 </td>
               </tr>
-              <tr v-if="stakes.length === 0" v-for="n in 10" :key="`empty-${n}`" class="empty-row">
+              <tr v-if="filteredStakes.length === 0" v-for="n in 10" :key="`empty-${n}`" class="empty-row">
+                <td>-</td>
                 <td>-</td>
                 <td>-</td>
                 <td>-</td>
@@ -187,6 +260,39 @@
             </tbody>
           </table>
         </div>
+      </div>
+    </section>
+
+    <!-- Stakes Visualization Section -->
+    <section class="stakes-chart-section" v-if="stakes.length > 0">
+      <h2 class="section-title">Stakes Visualization</h2>
+      
+      <div class="chart-controls">
+        <div class="chart-view-toggle">
+          <button 
+            @click="chartView = 'daily'" 
+            :class="{ active: chartView === 'daily' }"
+          >
+            Daily
+          </button>
+          <button 
+            @click="chartView = 'monthly'" 
+            :class="{ active: chartView === 'monthly' }"
+          >
+            Monthly
+          </button>
+          <button 
+            @click="chartView = 'yearly'" 
+            :class="{ active: chartView === 'yearly' }"
+          >
+            Yearly
+          </button>
+        </div>
+      </div>
+      
+      <div class="chart-container" ref="chartContainer">
+        <!-- Bar chart will be rendered here by D3.js -->
+        <div class="chart-empty" v-if="stakes.length === 0">No stakes data available for visualization</div>
       </div>
     </section>
 
@@ -214,7 +320,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { ethers } from 'ethers'
 import Papa from 'papaparse'
 import { liquidHexABI, liquidHexAddress } from '../contracts/liquidHexABI.js'
@@ -257,10 +363,25 @@ const activePopup = ref(null)
 const popupContainer = ref(null)
 const signatureOutput = ref(null)
 
+// Add summary metrics
+const totalAmount = ref(0)
+const mintedAmount = ref(0)
+const currentlyMintableAmount = ref(0)
+const lockedMintableAmount = ref(0)
+const stakeCount = ref(0)
+const mintedStakeCount = ref(0)
+
 // Form data
 const transferData = ref({ to: '', amount: '' })
 const mintData = ref({ id: '', amount: '', startDate: '', endDate: '', proof: '' })
 const signatureData = ref({ burnerAddress: '', id: '', amount: '', startDate: '', endDate: '', proof: '' })
+
+// Add filtering options
+const hideExpired = ref(false)
+const hideMinted = ref(false)
+const statusFilter = ref('all') // 'all', 'mintable', 'locked', 'minted', 'expired'
+const chartView = ref('monthly') // 'daily', 'monthly', 'yearly'
+const chartContainer = ref(null)
 
 // Get popup title based on active popup
 function getPopupTitle() {
@@ -295,7 +416,7 @@ async function connectToMetaMask() {
       try {
         // Request account access
         console.log("Requesting account access...")
-        await window.ethereum.request({ method: 'eth_requestAccounts' })
+      await window.ethereum.request({ method: 'eth_requestAccounts' })
         
         // Initialize provider
         console.log("Initializing ethers provider...")
@@ -314,16 +435,16 @@ async function connectToMetaMask() {
         
         // Get signer (wallet)
         console.log("Getting signer...")
-        signer = await provider.getSigner()
+      signer = await provider.getSigner()
         
         // Get account address
         console.log("Getting account address...")
-        account.value = await signer.getAddress()
+      account.value = await signer.getAddress()
         console.log("Connected account:", account.value)
         
         // Initialize contract
         console.log("Initializing contract instance...")
-        tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer)
+      tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer)
         console.log("Contract instance created:", tokenAddress)
         
         // Verify contract connectivity
@@ -335,10 +456,10 @@ async function connectToMetaMask() {
           alert("Failed to connect to the LiquidHEX contract. Make sure you're on PulseChain network.")
           return
         }
-        
-        // Once connected, fetch stakes data
+      
+      // Once connected, fetch stakes data
         console.log("Fetching stakes data...")
-        await fetchAndDisplayStakes(account.value)
+      await fetchAndDisplayStakes(account.value)
       } catch (ethersError) {
         console.error("Error during Ethers setup:", ethersError)
         alert(`Error setting up Ethers: ${ethersError.message || ethersError}`)
@@ -403,12 +524,12 @@ async function fetchAndDisplayStakes(address) {
     // Sort stakes by start date (earliest first)
     userStakes.sort((a, b) => parseInt(a['minting_start_date']) - parseInt(b['minting_start_date']));
     
-    let totalAmount = 0;
-    let mintedAmount = 0;
-    let currentlyMintableAmount = 0;
-    let lockedMintableAmount = 0;
-    let stakeCount = 0;
-    let mintedStakeCount = 0;
+    let totalAmountSum = 0;
+    let mintedAmountSum = 0;
+    let currentlyMintableAmountSum = 0;
+    let lockedMintableAmountSum = 0;
+    let stakeCountSum = 0;
+    let mintedStakeCountSum = 0;
     
     // Populate the stakes with data
     for (const stake of userStakes) {
@@ -423,8 +544,8 @@ async function fetchAndDisplayStakes(address) {
         }
         
         const amount = parseInt(stake['amount']);
-        totalAmount += amount;
-        stakeCount++;
+        totalAmountSum += amount;
+        stakeCountSum++;
         
         const isClaimed = await tokenContract.hasClaimedId(stakeId);
         const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
@@ -442,32 +563,40 @@ async function fetchAndDisplayStakes(address) {
         });
         
         if (isClaimed) {
-          mintedAmount += amount;
-          mintedStakeCount++;
+          mintedAmountSum += amount;
+          mintedStakeCountSum++;
         } else {
           if (currentTime > endDate) {
             // Expired stakes are not counted in any mintable amount
           } else if (currentTime < startDate) {
             // Locked stakes
-            lockedMintableAmount += amount;
+            lockedMintableAmountSum += amount;
           } else {
             // Currently mintable stakes
-            currentlyMintableAmount += amount;
-          }
-        }
-      } catch (error) {
+            currentlyMintableAmountSum += amount;
+      }
+    }
+  } catch (error) {
         console.error(`Error processing stake:`, error, stake);
       }
     }
     
+    // Update the reactive metrics
+    totalAmount.value = totalAmountSum;
+    mintedAmount.value = mintedAmountSum;
+    currentlyMintableAmount.value = currentlyMintableAmountSum;
+    lockedMintableAmount.value = lockedMintableAmountSum;
+    stakeCount.value = stakeCountSum;
+    mintedStakeCount.value = mintedStakeCountSum;
+    
     console.log("Total stakes loaded:", stakes.value.length);
     console.log("Stats:", {
-      totalAmount: totalAmount / 1e8,
-      mintedAmount: mintedAmount / 1e8, 
-      currentlyMintableAmount: currentlyMintableAmount / 1e8,
-      lockedMintableAmount: lockedMintableAmount / 1e8,
-      stakeCount,
-      mintedStakeCount
+      totalAmount: totalAmountSum / 1e8,
+      mintedAmount: mintedAmountSum / 1e8, 
+      currentlyMintableAmount: currentlyMintableAmountSum / 1e8,
+      lockedMintableAmount: lockedMintableAmountSum / 1e8,
+      stakeCount: stakeCountSum,
+      mintedStakeCount: mintedStakeCountSum
     });
     
   } catch (error) {
@@ -573,9 +702,9 @@ async function initiateMint(stake) {
         endDate,
         proofItems: merkleProof.length
       })
-      
-      // Call the contract to mint tokens
-      const tx = await tokenContract.claim(
+    
+    // Call the contract to mint tokens
+    const tx = await tokenContract.claim(
         stakeId,
         amount,
         startDate,
@@ -591,18 +720,18 @@ async function initiateMint(stake) {
       
       console.log("Transaction sent:", tx.hash)
       console.log("Waiting for transaction confirmation...")
-      
-      await tx.wait()
+    
+    await tx.wait()
       console.log("Transaction confirmed!")
-      
-      // Mark the stake as minted after successful transaction
-      const updatedStakes = [...stakes.value]
+    
+    // Mark the stake as minted after successful transaction
+    const updatedStakes = [...stakes.value]
       const stakeIndex = updatedStakes.findIndex(s => s.id === stakeId)
-      if (stakeIndex !== -1) {
-        updatedStakes[stakeIndex].minted = true
-      }
-      stakes.value = updatedStakes
-      
+    if (stakeIndex !== -1) {
+      updatedStakes[stakeIndex].minted = true
+    }
+    stakes.value = updatedStakes
+    
       alert(`Successfully minted LiquidHEX for stake ID ${stakeId}`)
     } catch (txError) {
       console.error("Error in transaction:", txError)
@@ -768,13 +897,490 @@ function formatAmount(amount) {
   }
 }
 
+// Add a new function to format large numbers with K, M, B for chart display
+function formatLargeNumber(num) {
+  num = Number(num) / 1e8; // Convert from smallest unit
+  
+  if (num >= 1000000000) {
+    return (num / 1000000000).toFixed(1) + 'B';
+  } else if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M';
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K';
+  } else {
+    return num.toFixed(1);
+  }
+}
+
 function formatDate(timestamp) {
   if (!timestamp) return '-'
   const date = new Date(Number(timestamp) * 1000)
   return date.toLocaleDateString()
 }
 
-// Initialize empty table and setup on component mount
+// Helper functions for stake status
+function isExpired(stake) {
+  const currentTime = Math.floor(Date.now() / 1000) // Current time in seconds
+  return currentTime > stake.endDate
+}
+
+function isLocked(stake) {
+  const currentTime = Math.floor(Date.now() / 1000) // Current time in seconds
+  return currentTime < stake.startDate
+}
+
+// Computed property for filtered stakes
+const filteredStakes = computed(() => {
+  let result = [...stakes.value]
+  
+  // Always sort by start date (earliest first)
+  result.sort((a, b) => a.startDate - b.startDate)
+  
+  // Apply status filter
+  switch(statusFilter.value) {
+    case 'mintable':
+      result = result.filter(stake => !stake.minted && !isExpired(stake) && !isLocked(stake))
+      break
+    case 'locked':
+      result = result.filter(stake => !stake.minted && isLocked(stake))
+      break
+    case 'minted':
+      result = result.filter(stake => stake.minted)
+      break
+    case 'expired':
+      result = result.filter(stake => !stake.minted && isExpired(stake))
+      break
+    default:
+      // 'all' - no filtering
+  }
+  
+  return result
+})
+
+// Watch for changes to filtered stakes or chart view to update chart
+watch(
+  [filteredStakes, chartView],
+  () => {
+    if (stakes.value.length > 0) {
+      renderChart()
+    }
+  },
+  { deep: true }
+)
+
+// Function to render the chart (using D3.js)
+function renderChart() {
+  // We'll need to include D3.js for this
+  if (!window.d3) {
+    const script = document.createElement('script')
+    script.src = 'https://d3js.org/d3.v7.min.js'
+    script.onload = () => {
+      createChart()
+    }
+    document.head.appendChild(script)
+  } else {
+    createChart()
+  }
+}
+
+// Function to create the chart with D3.js
+function createChart() {
+  if (!chartContainer.value || !window.d3) return
+
+  // Clear previous chart if any
+  const d3 = window.d3
+  const container = d3.select(chartContainer.value)
+  container.selectAll('*').remove()
+
+  // Calculate dimensions - adjusted for better spacing
+  const margin = { top: 40, right: 60, bottom: 100, left: 80 }
+  const width = chartContainer.value.clientWidth - margin.left - margin.right
+  const height = 400 - margin.top - margin.bottom
+
+  // Create SVG element
+  const svg = container
+    .append('svg')
+    .attr('width', width + margin.left + margin.right)
+    .attr('height', height + margin.top + margin.bottom)
+    .append('g')
+    .attr('transform', `translate(${margin.left},${margin.top})`)
+
+  // Process data based on the current view
+  const stakesData = processStakesData()
+  
+  // Limit the number of bars to prevent overcrowding
+  let displayData = stakesData
+  if (chartView.value === 'daily' && stakesData.length > 20) {
+    // Group by weeks or show recent data if too many days
+    displayData = stakesData.slice(-20)
+  }
+
+  // Set up scales
+  const x = d3.scaleBand()
+    .domain(displayData.map(d => d.period))
+    .range([0, width])
+    .padding(0.2)
+
+  const y = d3.scaleLinear()
+    .domain([0, d3.max(displayData, d => d.totalAmount) * 1.1]) // Add 10% padding
+    .range([height, 0])
+
+  // Add X axis with improved styling and rotation
+  const xAxis = svg.append('g')
+    .attr('transform', `translate(0,${height})`)
+    .call(d3.axisBottom(x))
+    
+  xAxis.selectAll('text')
+    .attr('transform', 'translate(-10,10)rotate(-45)')
+    .style('text-anchor', 'end')
+    .style('fill', '#f39c12')
+    .style('font-size', '11px')
+    .style('font-weight', '500')
+  
+  xAxis.selectAll('line')
+    .style('stroke', 'rgba(243, 156, 18, 0.3)')
+  
+  xAxis.selectAll('path')
+    .style('stroke', 'rgba(243, 156, 18, 0.3)')
+
+  // Add Y axis with improved styling and abbreviations
+  const yAxis = svg.append('g')
+    .call(d3.axisLeft(y)
+      .ticks(6)
+      .tickFormat(d => formatLargeNumber(d))
+    )
+    
+  yAxis.selectAll('text')
+    .style('fill', '#f39c12')
+    .style('font-size', '12px')
+    .style('font-weight', '500')
+  
+  yAxis.selectAll('line')
+    .style('stroke', 'rgba(243, 156, 18, 0.3)')
+  
+  yAxis.selectAll('path')
+    .style('stroke', 'rgba(243, 156, 18, 0.3)')
+
+  // Add horizontal grid lines
+  svg.append('g')
+    .attr('class', 'grid-lines')
+    .selectAll('line')
+    .data(y.ticks(6))
+    .enter()
+    .append('line')
+    .attr('x1', 0)
+    .attr('x2', width)
+    .attr('y1', d => y(d))
+    .attr('y2', d => y(d))
+    .style('stroke', 'rgba(255, 255, 255, 0.1)')
+    .style('stroke-dasharray', '3,3')
+
+  // Add Y axis label with better positioning
+  svg.append('text')
+    .attr('transform', 'rotate(-90)')
+    .attr('y', -margin.left + 20)
+    .attr('x', -height / 2)
+    .attr('text-anchor', 'middle')
+    .text('LHEX Amount')
+    .style('fill', '#f39c12')
+    .style('font-size', '14px')
+    .style('font-weight', 'bold')
+
+  // Add X axis label with better positioning
+  svg.append('text')
+    .attr('x', width / 2)
+    .attr('y', height + margin.bottom - 20)
+    .attr('text-anchor', 'middle')
+    .text(getChartTitle())
+    .style('fill', '#f39c12')
+    .style('font-size', '14px')
+    .style('font-weight', 'bold')
+
+  // Create tooltip with improved styling
+  const tooltip = d3.select(chartContainer.value)
+    .append('div')
+    .attr('class', 'chart-tooltip')
+    .style('opacity', 0)
+    .style('pointer-events', 'none')
+    .style('position', 'absolute')
+    .style('background-color', 'rgba(0, 0, 139, 0.95)')
+    .style('color', 'white')
+    .style('padding', '10px 15px')
+    .style('border-radius', '5px')
+    .style('font-size', '12px')
+    .style('box-shadow', '0 4px 10px rgba(0, 0, 0, 0.3)')
+    .style('z-index', '1000')
+    .style('max-width', '250px')
+    .style('pointer-events', 'none')
+
+  // Add animated bars with improved styling
+  svg.selectAll('rect')
+    .data(displayData)
+    .enter()
+    .append('rect')
+    .attr('x', d => x(d.period))
+    .attr('width', x.bandwidth())
+    .attr('y', height) // Start from bottom for animation
+    .attr('height', 0) // Start with height 0 for animation
+    .attr('rx', 2) // Rounded corners
+    .attr('ry', 2) // Rounded corners
+    .attr('fill', d => {
+      // Gradient fill based on stake status with improved colors
+      if (d.mintedAmount > 0 && d.totalAmount === d.mintedAmount) {
+        return '#4CAF50' // All minted - green
+      } else if (d.lockedAmount > 0 && d.totalAmount === d.lockedAmount) {
+        return '#FF9800' // All locked - orange
+      } else if (d.expiredAmount > 0 && d.totalAmount === d.expiredAmount) {
+        return '#F44336' // All expired - red
+      } else {
+        // Create gradient for mixed status
+        const gradient = svg.append('linearGradient')
+          .attr('id', `gradient-${d.period.replace(/\s+/g, '-')}`)
+          .attr('gradientUnits', 'userSpaceOnUse')
+          .attr('x1', '0%')
+          .attr('y1', '0%')
+          .attr('x2', '0%')
+          .attr('y2', '100%');
+        
+        gradient.append('stop')
+          .attr('offset', '0%')
+          .attr('stop-color', '#f39c12')
+          .attr('stop-opacity', 0.9);
+          
+        gradient.append('stop')
+          .attr('offset', '100%')
+          .attr('stop-color', '#e67e22')
+          .attr('stop-opacity', 0.7);
+          
+        return `url(#gradient-${d.period.replace(/\s+/g, '-')})`;
+      }
+    })
+    .style('stroke', 'rgba(0, 0, 0, 0.1)')
+    .style('stroke-width', 1)
+    .transition() // Add animation
+    .duration(800)
+    .delay((d, i) => i * 50)
+    .attr('y', d => y(d.totalAmount))
+    .attr('height', d => height - y(d.totalAmount))
+    .ease(d3.easeElastic.amplitude(0.5).period(0.7))
+    
+  // Add hover effects and tooltip
+  svg.selectAll('rect')
+    .data(displayData)
+    .on('mouseover', function(event, d) {
+      // Highlight bar on hover
+      d3.select(this)
+        .transition()
+        .duration(200)
+        .style('filter', 'brightness(1.2)')
+        .style('cursor', 'pointer')
+      
+      // Show tooltip
+      tooltip.transition()
+        .duration(200)
+        .style('opacity', 1)
+      
+      const mintedPercent = (d.mintedAmount / d.totalAmount * 100).toFixed(1)
+      const lockedPercent = (d.lockedAmount / d.totalAmount * 100).toFixed(1)
+      const expiredPercent = (d.expiredAmount / d.totalAmount * 100).toFixed(1)
+      const mintablePercent = (d.mintableAmount / d.totalAmount * 100).toFixed(1)
+      
+      tooltip.html(
+        `<strong style="font-size: 14px; color: #f39c12;">${d.period}</strong><br><br>` +
+        `<div style="display: flex; justify-content: space-between;">
+           <span>Total:</span> 
+           <span><b>${formatLargeNumber(d.totalAmount)}</b></span>
+         </div>` +
+        `<div style="display: flex; justify-content: space-between; color: ${d.mintedAmount ? '#4CAF50' : '#ccc'}">
+           <span>Minted:</span> 
+           <span><b>${formatLargeNumber(d.mintedAmount)}</b> (${mintedPercent}%)</span>
+         </div>` +
+        `<div style="display: flex; justify-content: space-between; color: ${d.lockedAmount ? '#FF9800' : '#ccc'}">
+           <span>Locked:</span> 
+           <span><b>${formatLargeNumber(d.lockedAmount)}</b> (${lockedPercent}%)</span>
+         </div>` +
+        `<div style="display: flex; justify-content: space-between; color: ${d.expiredAmount ? '#F44336' : '#ccc'}">
+           <span>Expired:</span> 
+           <span><b>${formatLargeNumber(d.expiredAmount)}</b> (${expiredPercent}%)</span>
+         </div>` +
+        `<div style="display: flex; justify-content: space-between; color: ${d.mintableAmount ? '#2196F3' : '#ccc'}">
+           <span>Mintable:</span> 
+           <span><b>${formatLargeNumber(d.mintableAmount)}</b> (${mintablePercent}%)</span>
+         </div>`
+      )
+      .style('left', `${event.pageX - chartContainer.value.getBoundingClientRect().left + 10}px`)
+      .style('top', `${event.pageY - chartContainer.value.getBoundingClientRect().top - 120}px`)
+    })
+    .on('mouseout', function() {
+      // Remove highlight on mouseout
+      d3.select(this)
+        .transition()
+        .duration(200)
+        .style('filter', 'brightness(1)')
+      
+      // Hide tooltip
+      tooltip.transition()
+        .duration(500)
+        .style('opacity', 0)
+    })
+    
+  // Add value labels on top of bars for significant values
+  svg.selectAll('.bar-label')
+    .data(displayData)
+    .enter()
+    .append('text')
+    .filter(d => (d.totalAmount / d3.max(displayData, d => d.totalAmount)) > 0.3) // Only show for significant bars
+    .attr('class', 'bar-label')
+    .attr('x', d => x(d.period) + x.bandwidth() / 2)
+    .attr('y', d => y(d.totalAmount) - 5)
+    .attr('text-anchor', 'middle')
+    .text(d => formatLargeNumber(d.totalAmount))
+    .style('fill', '#ffffff')
+    .style('font-size', '10px')
+    .style('font-weight', 'bold')
+    .style('text-shadow', '0 1px 2px rgba(0,0,0,0.5)')
+    .style('opacity', 0)
+    .transition()
+    .delay((d, i) => i * 50 + 800)
+    .duration(500)
+    .style('opacity', 1)
+    
+  // Add a legend
+  const legendData = [
+    { color: '#4CAF50', label: 'Minted' },
+    { color: '#2196F3', label: 'Mintable' },
+    { color: '#FF9800', label: 'Locked' },
+    { color: '#F44336', label: 'Expired' },
+    { color: '#f39c12', label: 'Mixed' }
+  ]
+  
+  const legend = svg.append('g')
+    .attr('class', 'legend')
+    .attr('transform', `translate(${width - 120}, -30)`)
+    
+  legend.selectAll('rect')
+    .data(legendData)
+    .enter()
+    .append('rect')
+    .attr('x', 0)
+    .attr('y', (d, i) => i * 20)
+    .attr('width', 12)
+    .attr('height', 12)
+    .attr('fill', d => d.color)
+    .attr('rx', 2)
+    .attr('ry', 2)
+    
+  legend.selectAll('text')
+    .data(legendData)
+    .enter()
+    .append('text')
+    .attr('x', 20)
+    .attr('y', (d, i) => i * 20 + 10)
+    .text(d => d.label)
+    .style('fill', '#f39c12')
+    .style('font-size', '11px')
+    .style('alignment-baseline', 'middle')
+}
+
+// Helper function to get chart title based on view
+function getChartTitle() {
+  switch(chartView.value) {
+    case 'daily': return 'Stakes by Day'
+    case 'monthly': return 'Stakes by Month'
+    case 'yearly': return 'Stakes by Year'
+    default: return 'Stakes Distribution'
+  }
+}
+
+// Process stakes data for chart visualization
+function processStakesData() {
+  const currentTime = Math.floor(Date.now() / 1000)
+  const data = []
+  const periods = new Map()
+
+  // Group stakes by period and calculate amounts
+  for (const stake of stakes.value) {
+    // Skip stakes that should be filtered out
+    if (hideExpired.value && isExpired(stake)) continue
+    if (hideMinted.value && stake.minted) continue
+
+    // Determine period based on start date
+    const date = new Date(stake.startDate * 1000)
+    let period
+    
+    switch(chartView.value) {
+      case 'daily':
+        period = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+          .toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+        break
+      case 'monthly':
+        period = new Date(date.getFullYear(), date.getMonth(), 1)
+          .toLocaleDateString('en-US', { year: 'numeric', month: 'short' })
+        break
+      case 'yearly':
+        period = date.getFullYear().toString()
+        break
+      default:
+        period = new Date(date.getFullYear(), date.getMonth(), 1)
+          .toLocaleDateString('en-US', { year: 'numeric', month: 'short' })
+    }
+
+    // Initialize period if not exists
+    if (!periods.has(period)) {
+      periods.set(period, {
+        period,
+        totalAmount: 0,
+        mintedAmount: 0,
+        lockedAmount: 0,
+        expiredAmount: 0,
+        mintableAmount: 0,
+        stakes: []
+      })
+    }
+
+    // Get the period data
+    const periodData = periods.get(period)
+    const amount = Number(stake.amount)
+    
+    // Add stake to the period and update amounts
+    periodData.stakes.push(stake)
+    periodData.totalAmount += amount
+
+    // Update amounts based on stake status
+    if (stake.minted) {
+      periodData.mintedAmount += amount
+    } else if (currentTime < stake.startDate) {
+      periodData.lockedAmount += amount
+    } else if (currentTime > stake.endDate) {
+      periodData.expiredAmount += amount
+    } else {
+      periodData.mintableAmount += amount
+    }
+  }
+
+  // Convert Map to Array and sort by period
+  for (const [_, periodData] of periods) {
+    data.push(periodData)
+  }
+
+  // Sort data by period
+  if (chartView.value === 'daily') {
+    data.sort((a, b) => new Date(a.period) - new Date(b.period))
+  } else if (chartView.value === 'monthly') {
+    data.sort((a, b) => {
+      const [aMonth, aYear] = a.period.split(' ')
+      const [bMonth, bYear] = b.period.split(' ')
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+      return (Number(aYear) - Number(bYear)) || (months.indexOf(aMonth) - months.indexOf(bMonth))
+    })
+  } else {
+    data.sort((a, b) => a.period.localeCompare(b.period))
+  }
+
+  return data
+}
+
+// Update onMounted to include chart initialization
 onMounted(() => {
   initializeEmptyTable()
   
@@ -804,18 +1410,48 @@ onMounted(() => {
     
     // Check if already connected
     if (window.ethereum.isConnected()) {
-      connectToMetaMask()
+    connectToMetaMask()
+  }
+  }
+  
+  // Handle window resize for chart
+  const handleResize = () => {
+    if (stakes.value.length > 0) {
+      renderChart()
     }
   }
   
-  // Clean up event listeners on unmount
+  window.addEventListener('resize', handleResize)
+  
+  // Add to cleanup
   onBeforeUnmount(() => {
     if (window.ethereum) {
       window.ethereum.removeAllListeners('accountsChanged')
       window.ethereum.removeAllListeners('chainChanged')
     }
+    window.removeEventListener('resize', handleResize)
   })
 })
+
+// Add a function to format amounts for display with commas and abbreviations for large numbers
+function formatAmountDisplay(amount) {
+  if (amount === 0) return "0";
+  
+  const value = Number(amount) / 1e8;
+  
+  if (value >= 1000000000) {
+    return (value / 1000000000).toFixed(2) + 'B';
+  } else if (value >= 1000000) {
+    return (value / 1000000).toFixed(2) + 'M';
+  } else if (value >= 1000) {
+    return (value / 1000).toFixed(2) + 'K';
+  } else {
+    return value.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+}
 </script>
 
 <style scoped>
@@ -1435,5 +2071,270 @@ onMounted(() => {
     padding: 0.4rem 0.7rem;
     font-size: 0.8rem;
   }
+}
+
+/* Filter options */
+.filter-options {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.status-filter {
+  background-color: rgba(57, 52, 36, 0.8);
+  color: #fff;
+  padding: 0.7rem 1.5rem;
+  border-radius: 5px;
+  border: 1px solid rgba(243, 156, 18, 0.5);
+  cursor: pointer;
+  font-size: 1rem;
+  min-width: 200px;
+  text-align: center;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23F39C12%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem top 50%;
+  background-size: 0.65rem auto;
+  transition: all 0.3s ease;
+}
+
+.status-filter:hover {
+  background-color: rgba(243, 156, 18, 0.4);
+}
+
+.status-filter:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(243, 156, 18, 0.5);
+}
+
+.status-filter option {
+  background-color: rgba(0, 0, 139, 0.9);
+  color: white;
+}
+
+@media (max-width: 768px) {
+  .metrics-grid {
+    flex-direction: column;
+  }
+  
+  .metric-item {
+    width: 100%;
+    padding: 0.4rem 0;
+  }
+  
+  .metric-title {
+    font-size: 0.8rem;
+  }
+  
+  .metric-value {
+    font-size: 1.1rem;
+  }
+  
+  .status-filter {
+    width: 90%;
+    max-width: 300px;
+  }
+}
+
+/* Stake status styles */
+.stake-status {
+  text-align: center;
+}
+
+.status-icon {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  text-align: center;
+  border-radius: 50%;
+  font-weight: bold;
+}
+
+.minted-icon {
+  background-color: rgba(76, 175, 80, 0.3);
+  color: #4CAF50;
+}
+
+.expired-icon {
+  background-color: rgba(244, 67, 54, 0.3);
+  color: #F44336;
+}
+
+.locked-icon {
+  background-color: rgba(255, 152, 0, 0.3);
+  color: #FF9800;
+}
+
+.mintable-icon {
+  background-color: rgba(33, 150, 243, 0.3);
+  color: #2196F3;
+}
+
+/* Stake row status styles */
+.stakes-table tr.expired-stake {
+  background-color: rgba(244, 67, 54, 0.1);
+}
+
+.stakes-table tr.locked-stake {
+  background-color: rgba(255, 152, 0, 0.1);
+}
+
+/* Button styles */
+.locked-button, .expired-button {
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.locked-button {
+  background-color: #FF9800;
+  color: #fff;
+}
+
+.expired-button {
+  background-color: #F44336;
+  color: #fff;
+}
+
+/* Chart styles */
+.stakes-chart-section {
+  margin-top: 4rem;
+  text-align: center;
+}
+
+.chart-controls {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.chart-view-toggle {
+  display: flex;
+  background-color: rgba(57, 52, 36, 0.8);
+  border-radius: 30px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.chart-view-toggle button {
+  background: none;
+  border: none;
+  padding: 0.7rem 1.5rem;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 80px;
+}
+
+.chart-view-toggle button.active {
+  background-color: #f39c12;
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.chart-container {
+  height: 460px;
+  background-color: rgba(57, 52, 36, 0.5);
+  border-radius: 10px;
+  padding: 20px 10px 30px 10px;
+  margin: 0 auto;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: visible;
+}
+
+.chart-empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.2rem;
+}
+
+.chart-tooltip {
+  position: absolute;
+  padding: 10px;
+  background-color: rgba(0, 0, 139, 0.9);
+  color: white;
+  border-radius: 5px;
+  pointer-events: none;
+  font-size: 0.9rem;
+  z-index: 10;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Metrics Overview Section */
+.metrics-overview {
+  margin-bottom: 1.5rem;
+}
+
+.metrics-container {
+  background: rgba(135, 140, 189, 0.7);
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  padding: 1rem 1.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  flex-direction: column;
+}
+
+.address-display {
+  margin-bottom: 0.75rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.address-label {
+  font-weight: 600;
+  color: rgba(0, 0, 139, 0.9);
+  margin-right: 0.5rem;
+}
+
+.address-value {
+  font-weight: bold;
+  color: #fff;
+  background: rgba(0, 0, 139, 0.3);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+}
+
+.metrics-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.metric-item {
+  flex: 1;
+  min-width: 20%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.metric-title {
+  font-size: 0.85rem;
+  color: rgba(0, 0, 139, 0.9);
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+}
+
+.metric-value {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
 }
 </style> 
