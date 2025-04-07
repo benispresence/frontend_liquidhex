@@ -3,9 +3,21 @@
     <!-- Navigation bar matching the Home page -->
     <nav class="navbar">
       <div class="navbar-container">
-        <div class="navbar-logo">
-          <img src="/logo.png" alt="LiquidHEX Logo" class="nav-logo">
-          <span class="nav-title">LiquidHEX</span>
+        <div class="navbar-left">
+          <div class="navbar-logo">
+            <img src="/logo.png" alt="LiquidHEX Logo" class="nav-logo">
+            <span class="nav-title">LiquidHEX</span>
+          </div>
+          <div class="address-search">
+            <input 
+              type="text" 
+              v-model="searchAddressInput" 
+              placeholder="Search address (e.g., 0x...)"
+              class="address-search-input"
+              @keyup.enter="handleAddressSearch"
+            >
+            <button class="address-search-button" @click="handleAddressSearch">Search</button>
+          </div>
         </div>
         <div class="navbar-menu-toggle" @click="toggleMenu">
           <div class="bar" :class="{ 'open': menuOpen }"></div>
@@ -26,27 +38,38 @@
     <header class="mint-hero">
       <div class="hero-content">
         <h1 class="hero-title">Mint LiquidHEX</h1>
-        <div class="wallet-connection">
-          <button 
-            class="connect-button" 
-            @click="connectToMetaMask"
-            :disabled="account"
-          >
-            {{ account ? 'Connected' : 'Connect MetaMask' }}
-          </button>
-          <div class="connection-status" :class="{ 'connected': account }">
-            {{ account ? formatAddress(account) : 'Not Connected' }}
+        <div class="wallet-action-area">
+          <div class="wallet-connection">
+            <button 
+              class="connect-button" 
+              @click="connectToMetaMask"
+              :disabled="account"
+            >
+              {{ account ? 'Connected' : 'Connect MetaMask' }}
+            </button>
+            <div class="connection-status" :class="{ 'connected': account }">
+              {{ account ? formatAddress(account) : 'Not Connected' }}
+            </div>
           </div>
+          <button 
+            v-if="viewingDifferentAddress" 
+            class="switch-address-button" 
+            @click="switchToMyAddress"
+            title="Switch back to your connected wallet address"
+          >
+            <span class="icon">🔄</span> Switch to My Address
+          </button>
         </div>
       </div>
     </header>
 
     <!-- Metrics Overview Section -->
-    <section class="metrics-overview" v-if="account">
+    <section class="metrics-overview" v-if="viewedAddress">
       <div class="metrics-container">
         <div class="address-display">
-          <span class="address-label">Connected:</span>
-          <span class="address-value">{{ formatAddress(account) }}</span>
+          <span class="address-label">{{ viewingDifferentAddress ? 'Viewing Address:' : 'Connected:' }}</span>
+          <span class="address-value">{{ formatAddress(viewedAddress) }}</span>
+          <span v-if="viewingDifferentAddress" class="viewing-note">(Not your connected wallet)</span>
         </div>
         <div class="metrics-grid">
           <div class="metric-item">
@@ -205,7 +228,7 @@
                 :key="index" 
                 :class="{ 
                   'minted': stake.minted, 
-                  'connected-address': stake.address === account,
+                  'connected-address': stake.address === viewedAddress,
                   'expired-stake': isExpired(stake),
                   'locked-stake': isLocked(stake)
                 }"
@@ -223,14 +246,16 @@
                 </td>
                 <td>
                   <button 
-                    v-if="!stake.minted && stake.address === account && !isExpired(stake) && !isLocked(stake)" 
+                    v-if="!stake.minted && stake.address === viewedAddress && !isExpired(stake) && !isLocked(stake)" 
                     class="mint-button" 
                     @click="initiateMint(stake)"
+                    :disabled="viewingDifferentAddress" 
+                    :title="viewingDifferentAddress ? 'Cannot mint for a searched address' : 'Mint this stake'"
                   >
                     Mint
                   </button>
                   <button 
-                    v-else-if="!stake.minted && stake.address === account && isLocked(stake)" 
+                    v-else-if="!stake.minted && stake.address === viewedAddress && isLocked(stake)" 
                     class="locked-button" 
                     disabled
                     title="Locked until the start date"
@@ -238,7 +263,7 @@
                     Locked
                   </button>
                   <button 
-                    v-else-if="!stake.minted && stake.address === account && isExpired(stake)" 
+                    v-else-if="!stake.minted && stake.address === viewedAddress && isExpired(stake)" 
                     class="expired-button" 
                     disabled
                     title="Stake has expired"
@@ -324,6 +349,11 @@ import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { ethers } from 'ethers'
 import Papa from 'papaparse'
 import { liquidHexABI, liquidHexAddress } from '../contracts/liquidHexABI.js'
+import { useRouter, useRoute } from 'vue-router' // Import router hooks
+
+// Router instance
+const router = useRouter()
+const route = useRoute()
 
 // Mobile menu state
 const menuOpen = ref(false);
@@ -357,7 +387,9 @@ onBeforeUnmount(() => {
 });
 
 // State variables
-const account = ref(null)
+const account = ref(null) // Connected wallet address
+const viewedAddress = ref(null) // Address currently being viewed
+const searchAddressInput = ref('') // Input model for search bar
 const stakes = ref([])
 const activePopup = ref(null)
 const popupContainer = ref(null)
@@ -382,6 +414,11 @@ const hideMinted = ref(false)
 const statusFilter = ref('all') // 'all', 'mintable', 'locked', 'minted', 'expired'
 const chartView = ref('monthly') // 'daily', 'monthly', 'yearly'
 const chartContainer = ref(null)
+
+// Computed property to check if viewing a different address
+const viewingDifferentAddress = computed(() => {
+  return account.value && viewedAddress.value && account.value.toLowerCase() !== viewedAddress.value.toLowerCase()
+})
 
 // Get popup title based on active popup
 function getPopupTitle() {
@@ -439,7 +476,10 @@ async function connectToMetaMask() {
         
         // Get account address
         console.log("Getting account address...")
-      account.value = await signer.getAddress()
+        const connectedAccount = await signer.getAddress()
+        account.value = connectedAccount
+        viewedAddress.value = connectedAccount // Initially view the connected address
+        searchAddressInput.value = '' // Clear search input
         console.log("Connected account:", account.value)
         
         // Initialize contract
@@ -459,7 +499,7 @@ async function connectToMetaMask() {
       
       // Once connected, fetch stakes data
         console.log("Fetching stakes data...")
-      await fetchAndDisplayStakes(account.value)
+      await fetchAndDisplayStakes(viewedAddress.value)
       } catch (ethersError) {
         console.error("Error during Ethers setup:", ethersError)
         alert(`Error setting up Ethers: ${ethersError.message || ethersError}`)
@@ -496,30 +536,58 @@ async function fetchCSVWithRetry(url, maxRetries = 3, retryDelay = 1000) {
 // Updated fetchAndDisplayStakes to match the original implementation
 async function fetchAndDisplayStakes(address) {
   try {
-    // Clear any existing stakes
+    // Clear previous data
     stakes.value = []
+    totalAmount.value = 0
+    mintedAmount.value = 0
+    currentlyMintableAmount.value = 0
+    lockedMintableAmount.value = 0
+    stakeCount.value = 0
+    mintedStakeCount.value = 0
     
-    if (!account.value) {
-      console.error("No address provided to fetch stakes")
+    if (!address || !ethers.isAddress(address)) {
+      console.error("Invalid or no address provided to fetch stakes:", address)
+      alert("Please enter a valid Ethereum address.")
+      // Optionally reset viewedAddress if invalid search was attempted
+      // if (!account.value) viewedAddress.value = null;
       return
     }
     
-    // Ensure account is lowercased for comparison
-    const connectedAccount = String(address).trim().toLowerCase();
-    console.log("Fetching and displaying stakes for account:", connectedAccount);
+    console.log("Fetching stakes for address:", address)
+    viewedAddress.value = address // Ensure viewedAddress is set
+
+    // Ensure contract is initialized if needed (especially if searching before connecting)
+    if (!tokenContract && provider) {
+      console.log("Initializing read-only contract instance...")
+      // Use provider for read-only if signer not available
+      const contractSignerOrProvider = signer || provider;
+      tokenContract = new ethers.Contract(tokenAddress, tokenABI, contractSignerOrProvider)
+      console.log("Read-only contract instance created.")
+    } else if (!tokenContract) {
+      console.warn("Provider not available, cannot fetch on-chain data.")
+      // Potentially just show CSV data without claim status?
+      // For now, we require provider at least.
+      // A better approach might be to use a default public RPC provider.
+      alert("Please connect your wallet first to establish a network connection.")
+      return; 
+    }
+    
+    // Ensure address is lowercased for comparison
+    const targetAddressLower = String(address).trim().toLowerCase();
+    console.log("Fetching and displaying stakes for target account:", targetAddressLower);
 
     // Fetch and parse the main CSV file with retries
     console.log("Fetching merkle_tree_base.csv...")
     const csvData = await fetchCSVWithRetry('/merkle_tree_base.csv', 3);
     console.log("CSV data loaded, found", csvData.length, "rows")
     
-    // Filter stakes for the connected address
+    // Filter stakes for the target address
     const userStakes = csvData.filter(row => {
       const eligibleAddress = String(row['eligible_address'] || '').trim().toLowerCase();
-      return eligibleAddress === connectedAccount;
+      return eligibleAddress === targetAddressLower;
     });
     
-    console.log("Found", userStakes.length, "stakes for the connected address")
+    console.log("Found", userStakes.length, "stakes for the target address")
     
     // Sort stakes by start date (earliest first)
     userStakes.sort((a, b) => parseInt(a['minting_start_date']) - parseInt(b['minting_start_date']));
@@ -602,6 +670,8 @@ async function fetchAndDisplayStakes(address) {
   } catch (error) {
     console.error("Error fetching stakes:", error);
     alert(`Error fetching stakes: ${error.message}`);
+    // Clear data on error
+    stakes.value = []
   }
 }
 
@@ -1380,57 +1450,83 @@ function processStakesData() {
   return data
 }
 
-// Update onMounted to include chart initialization
+// Update onMounted to check for address query parameter on load
 onMounted(() => {
   initializeEmptyTable()
+
+  // Check for address in query parameters on initial load
+  const initialAddress = route.query.address;
+  if (initialAddress && ethers.isAddress(initialAddress)) {
+    console.log("Found address in query parameter:", initialAddress);
+    searchAddressInput.value = initialAddress; // Pre-fill search bar
+    // Attempt to fetch data. Need provider. Delay connect prompt slightly?
+    // We might need to initialize provider without full connection first.
+     setTimeout(() => { // Use timeout to allow potential auto-connect
+      if (!account.value && typeof window.ethereum !== 'undefined') {
+          // Initialize provider for read-only if not connected
+          provider = new ethers.BrowserProvider(window.ethereum)
+          fetchAndDisplayStakes(initialAddress);
+      } else if (account.value) {
+         // If already connected, ensure we view the query address
+         fetchAndDisplayStakes(initialAddress);
+      }
+    }, 500); // Small delay
+
+  } else {
+     // If no query param, try to connect or wait for connection
+     if (window.ethereum && window.ethereum.isConnected()) {
+       connectToMetaMask()
+     }
+  }
   
-  // Set up event listeners for MetaMask account changes
+  // Set up event listeners for MetaMask account/chain changes
   if (window.ethereum) {
+    // ... existing listeners ...
+    // Modify accountsChanged listener:
     window.ethereum.on('accountsChanged', async (accounts) => {
       console.log("MetaMask accounts changed:", accounts)
-      
       if (accounts.length > 0) {
-        // Clear previous state
-        stakes.value = []
+        // Reconnect logic but check if user was viewing a searched address
+        const currentSearch = route.query.address;
+        const newAccount = accounts[0];
+        account.value = newAccount; // Update connected account
         
-        // Connect with the new account
-        await connectToMetaMask()
+        if (currentSearch && currentSearch.toLowerCase() !== newAccount.toLowerCase()) {
+          // Keep viewing the searched address, just update the internal account state
+          console.log("Account changed, but continuing to view searched address:", currentSearch);
+          // Optionally re-initialize signer if needed for actions
+          if (provider) {
+              signer = await provider.getSigner();
+              tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
+          }
+        } else {
+          // Switch view to the new account
+          viewedAddress.value = newAccount;
+          searchAddressInput.value = '';
+          updateRouterQuery(newAccount);
+          await fetchAndDisplayStakes(newAccount);
+        }
       } else {
         // User disconnected all accounts
         account.value = null
+        signer = null
+        // Decide whether to clear viewedAddress or keep showing the last searched one
+        // Let's clear it for now, requiring a new search or connect
+        viewedAddress.value = null
         stakes.value = []
+        updateRouterQuery(); // Clear query param
         console.log("MetaMask disconnected")
+        // Re-initialize contract with provider only if provider exists
+        if (provider) {
+           tokenContract = new ethers.Contract(tokenAddress, tokenABI, provider);
+        }
       }
     })
-    
-    window.ethereum.on('chainChanged', () => {
-      console.log("MetaMask chain changed, refreshing...")
-      window.location.reload()
-    })
-    
-    // Check if already connected
-    if (window.ethereum.isConnected()) {
-    connectToMetaMask()
-  }
+
+    // ... existing chainChanged listener ...
   }
   
-  // Handle window resize for chart
-  const handleResize = () => {
-    if (stakes.value.length > 0) {
-      renderChart()
-    }
-  }
-  
-  window.addEventListener('resize', handleResize)
-  
-  // Add to cleanup
-  onBeforeUnmount(() => {
-    if (window.ethereum) {
-      window.ethereum.removeAllListeners('accountsChanged')
-      window.ethereum.removeAllListeners('chainChanged')
-    }
-    window.removeEventListener('resize', handleResize)
-  })
+  // ... existing resize handler ...
 })
 
 // Add a function to format amounts for display with commas and abbreviations for large numbers
@@ -1452,6 +1548,49 @@ function formatAmountDisplay(amount) {
     });
   }
 }
+
+// Handle address search from navbar input
+async function handleAddressSearch() {
+  const searchTerm = searchAddressInput.value.trim();
+  if (ethers.isAddress(searchTerm)) {
+    console.log("Searching for address:", searchTerm);
+    updateRouterQuery(searchTerm); // Update URL
+    await fetchAndDisplayStakes(searchTerm); // Fetch data for the searched address
+  } else if (searchTerm) {
+    alert("Invalid Ethereum address format.");
+  } else {
+     // If search is empty, switch back to connected wallet if available
+    if (account.value) {
+      switchToMyAddress();
+    } else {
+       viewedAddress.value = null; // Clear view if not connected and search is empty
+       stakes.value = []; // Clear stakes
+       updateRouterQuery(); // Clear query param
+    }
+  }
+}
+
+// Switch view back to the connected wallet address
+async function switchToMyAddress() {
+  if (account.value) {
+    console.log("Switching view back to connected address:", account.value);
+    searchAddressInput.value = ''; // Clear search input
+    updateRouterQuery(account.value); // Update URL
+    await fetchAndDisplayStakes(account.value); // Fetch data for connected address
+  } else {
+    alert("Please connect your wallet first.")
+  }
+}
+
+// Helper function to update router query parameter
+function updateRouterQuery(address = null) {
+  router.push({ query: address ? { address: address } : {} }).catch(err => {
+    // Ignore navigation duplication errors if the query is already set
+    if (err.name !== 'NavigationDuplicated') {
+      console.error('Router push error:', err);
+    }
+  });
+}
 </script>
 
 <style scoped>
@@ -1471,9 +1610,90 @@ function formatAmountDisplay(amount) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  max-width: 1200px;
+  max-width: 1300px; /* Slightly wider for search */
   margin: 0 auto;
   padding: 0.8rem 1.5rem;
+}
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+  flex-grow: 1; /* Allow search bar to take space */
+  margin-right: 1rem; /* Space before links/toggle */
+}
+
+.address-search {
+  display: flex;
+  align-items: center;
+  margin-left: 2rem; 
+  flex-grow: 1; /* Allow input to expand */
+  max-width: 500px; /* Limit max width */
+}
+
+.address-search-input {
+  padding: 0.5rem 1rem;
+  border-radius: 5px 0 0 5px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 0.9rem;
+  flex-grow: 1;
+  min-width: 200px; /* Minimum width */
+}
+
+.address-search-input:focus {
+  outline: none;
+  border-color: rgba(243, 156, 18, 0.6);
+  box-shadow: 0 0 0 2px rgba(243, 156, 18, 0.3);
+}
+
+.address-search-button {
+  padding: 0.5rem 1rem;
+  border-radius: 0 5px 5px 0;
+  border: 1px solid rgba(243, 156, 18, 0.8);
+  background-color: #f39c12;
+  color: #fff;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 0.9rem;
+  transition: background-color 0.3s ease;
+}
+
+.address-search-button:hover {
+  background-color: #e67e22;
+  border-color: #e67e22;
+}
+
+.wallet-action-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.switch-address-button {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 0.6rem 1.2rem;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.3s ease;
+}
+
+.switch-address-button:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-1px);
+}
+
+.switch-address-button .icon {
+  font-size: 1.1em;
 }
 
 .navbar-logo {
@@ -2336,5 +2556,57 @@ function formatAmountDisplay(amount) {
   font-weight: bold;
   color: #fff;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Style for disabled mint button */
+.mint-button:disabled {
+  background-color: #a0a0a0; /* Grey background */
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+  transform: none;
+}
+
+.mint-button:disabled:hover {
+   background-color: #a0a0a0;
+}
+
+/* Note for viewing different address */
+.viewing-note {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-left: 0.75rem;
+  font-style: italic;
+}
+
+@media (max-width: 992px) { /* Adjust breakpoint as needed */
+  .navbar-left {
+     margin-right: 0.5rem;
+  }
+  .address-search {
+    margin-left: 1rem;
+    max-width: 350px;
+  }
+}
+
+@media (max-width: 768px) {
+  .navbar-left {
+    flex-grow: 0; /* Don't grow on mobile when menu toggle appears */
+    margin-right: 0;
+  }
+  .address-search {
+    display: none; /* Hide search in navbar on small screens - consider moving it */
+    /* Alternative: Keep it but make it smaller or place it elsewhere */
+  }
+  
+  .navbar-links.open {
+    /* Maybe add search bar inside the opened mobile menu? */
+  }
+
+  .viewing-note {
+    display: block; /* Stack note below address on mobile */
+    margin-left: 0;
+    margin-top: 0.25rem;
+  }
 }
 </style> 
