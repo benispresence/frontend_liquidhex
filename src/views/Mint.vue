@@ -326,6 +326,46 @@
             Yearly
           </button>
         </div>
+        
+        <!-- Date filter controls -->
+        <div class="date-filter" v-if="chartView === 'daily' || chartView === 'monthly'">
+          <div class="date-filter-inputs">
+            <div class="date-filter-field">
+              <label for="startDate">From:</label>
+              <input 
+                type="date" 
+                id="startDate" 
+                v-model="chartStartDate"
+                @change="applyDateFilter" 
+              />
+            </div>
+            <div class="date-filter-field">
+              <label for="endDate">To:</label>
+              <input 
+                type="date" 
+                id="endDate" 
+                v-model="chartEndDate"
+                @change="applyDateFilter"
+              />
+            </div>
+          </div>
+          <button class="reset-filter" @click="resetDateFilter">Reset</button>
+          
+          <!-- Info icon that appears when the 20-bar limit is hit -->
+          <div class="info-icon-container" v-if="isLimitingBars">
+            <div class="info-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              <div class="info-tooltip">
+                Chart is limited to displaying 20 bars at a time to ensure readability.
+                Use the date filter to view different time periods.
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       
       <div class="chart-container" ref="chartContainer">
@@ -408,6 +448,12 @@ const hideMinted = ref(false)
 const statusFilter = ref('all') // 'all', 'mintable', 'locked', 'minted', 'expired'
 const chartView = ref('monthly') // 'daily', 'monthly', 'yearly'
 const chartContainer = ref(null)
+
+// Date filter for chart
+const chartStartDate = ref('')
+const chartEndDate = ref('')
+const isDateFilterActive = ref(false)
+const isLimitingBars = ref(false)
 
 // Get popup title based on active popup
 function getPopupTitle() {
@@ -1094,11 +1140,22 @@ function createChart() {
   // Process data based on the current view
   const stakesData = processStakesData()
   
+  // Reset the limiting bars flag
+  isLimitingBars.value = false
+
   // Limit the number of bars to prevent overcrowding
   let displayData = stakesData
-  if (chartView.value === 'daily' && stakesData.length > 20) {
-    // Group by weeks or show recent data if too many days
-    displayData = stakesData.slice(-20)
+  if ((chartView.value === 'daily' || chartView.value === 'monthly') && stakesData.length > 20) {
+    // Set flag that we're limiting bars
+    isLimitingBars.value = true
+    
+    if (isDateFilterActive.value) {
+      // If date filter is active but we still have too many bars, just take the first 20
+      displayData = stakesData.slice(0, 20)
+    } else {
+      // Group by weeks or show recent data if too many days
+      displayData = stakesData.slice(-20)
+    }
   }
 
   // Set up scales
@@ -1214,6 +1271,8 @@ function createChart() {
       // Gradient fill based on stake status with improved colors
       if (d.mintedAmount > 0 && d.totalAmount === d.mintedAmount) {
         return '#4CAF50' // All minted - green
+      } else if (d.mintableAmount > 0 && d.totalAmount === d.mintableAmount) {
+        return '#2196F3' // All mintable - blue
       } else if (d.lockedAmount > 0 && d.totalAmount === d.lockedAmount) {
         return '#FF9800' // All locked - orange
       } else if (d.expiredAmount > 0 && d.totalAmount === d.expiredAmount) {
@@ -1422,6 +1481,20 @@ function processStakesData() {
 
     // Determine period based on start date
     const date = new Date(stake.startDate * 1000)
+    
+    // Apply date filter for both daily and monthly views
+    if ((chartView.value === 'daily' || chartView.value === 'monthly') && isDateFilterActive.value) {
+      const startFilterDate = chartStartDate.value ? new Date(chartStartDate.value) : null
+      const endFilterDate = chartEndDate.value ? new Date(chartEndDate.value) : null
+      
+      if (startFilterDate && date < startFilterDate) continue
+      if (endFilterDate) {
+        // Set end date to end of day
+        endFilterDate.setHours(23, 59, 59, 999)
+        if (date > endFilterDate) continue
+      }
+    }
+    
     let period
     
     switch(chartView.value) {
@@ -1568,6 +1641,26 @@ function formatAmountDisplay(amount) {
       maximumFractionDigits: 2
     });
   }
+}
+
+// Apply date filter
+function applyDateFilter() {
+  if (chartStartDate.value && chartEndDate.value) {
+    if (new Date(chartStartDate.value) > new Date(chartEndDate.value)) {
+      alert('Start date cannot be after end date')
+      return
+    }
+    isDateFilterActive.value = true
+    renderChart()
+  }
+}
+
+// Reset date filter
+function resetDateFilter() {
+  chartStartDate.value = ''
+  chartEndDate.value = ''
+  isDateFilterActive.value = false
+  renderChart()
 }
 </script>
 
@@ -2087,7 +2180,9 @@ function formatAmountDisplay(amount) {
 .chart-controls {
   display: flex;
   justify-content: center;
+  flex-wrap: wrap;
   margin-bottom: 2rem;
+  gap: 1rem;
 }
 
 .chart-view-toggle {
@@ -2111,6 +2206,120 @@ function formatAmountDisplay(amount) {
   background-color: #f39c12;
   border-radius: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Date filter styles */
+.date-filter {
+  display: flex;
+  align-items: center;
+  background-color: rgba(0, 0, 139, 0.7);
+  padding: 0.5rem 1rem;
+  border-radius: 30px;
+  gap: 0.5rem;
+  position: relative;
+}
+
+.date-filter-inputs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.date-filter-field {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.date-filter-field label {
+  color: #f39c12;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.date-filter-field input {
+  background-color: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 0.3rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.reset-filter {
+  background-color: rgba(0, 0, 0, 0.3);
+  border: none;
+  color: white;
+  padding: 0.3rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.reset-filter:hover {
+  background-color: rgba(244, 67, 54, 0.7);
+}
+
+/* Info icon styles */
+.info-icon-container {
+  display: flex;
+  align-items: center;
+  margin-left: 0.5rem;
+}
+
+.info-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background-color: rgba(33, 150, 243, 0.3);
+  border-radius: 50%;
+  cursor: help;
+  color: #fff;
+}
+
+.info-icon:hover {
+  background-color: rgba(33, 150, 243, 0.7);
+}
+
+.info-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 8px;
+  background-color: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 0.8rem;
+  border-radius: 4px;
+  width: 220px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s, visibility 0.3s;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.info-icon:hover .info-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+.info-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: rgba(0, 0, 0, 0.9) transparent transparent transparent;
 }
 
 .chart-container {
