@@ -26,9 +26,45 @@
             <span class="metric-title">Locked Mintable:</span>
             <span class="metric-value">{{ formatAmountDisplay(lockedMintableAmount) }}</span>
           </div>
+          <div class="metric-item">
+            <span class="metric-title">LHEX Balance:</span>
+            <span class="metric-value">{{ formatAmountDisplay(walletBalance) }}</span>
+          </div>
         </div>
       </div>
     </section>
+
+    <!-- Action buttons without title - compact version -->
+    <div class="compact-actions" v-if="account">
+      <div class="action-buttons">
+        <button class="action-button" @click="showPopup('transfer')">
+          <span class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <polyline points="19 12 12 19 5 12"></polyline>
+            </svg>
+          </span>
+          Transfer
+        </button>
+        <button class="action-button" @click="showPopup('mint')">
+          <span class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+            </svg>
+          </span>
+          Mint Manually
+        </button>
+        <button class="action-button" @click="showPopup('signature')">
+          <span class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 11.08V8l-6-6H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h6"></path>
+              <path d="M14 3v5h5M18 21v-6M15 18h6"></path>
+            </svg>
+          </span>
+          Create Signature
+        </button>
+      </div>
+    </div>
 
     <!-- Address Search -->
     <section class="address-search-section" v-if="account">
@@ -69,39 +105,6 @@
         <span class="viewing-label">Currently viewing:</span>
         <span class="viewing-address">{{ formatAddress(viewedAddress) }}</span>
         <span class="read-only-badge">READ ONLY</span>
-      </div>
-    </section>
-
-    <!-- Action buttons section -->
-    <section class="action-section">
-      <h2 class="section-title">Manual Actions</h2>
-      <div class="action-buttons">
-        <button class="action-button" @click="showPopup('transfer')">
-          <span class="icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <polyline points="19 12 12 19 5 12"></polyline>
-            </svg>
-          </span>
-          Transfer
-        </button>
-        <button class="action-button" @click="showPopup('mint')">
-          <span class="icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-            </svg>
-          </span>
-          Mint Manually
-        </button>
-        <button class="action-button" @click="showPopup('signature')">
-          <span class="icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20 11.08V8l-6-6H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h6"></path>
-              <path d="M14 3v5h5M18 21v-6M15 18h6"></path>
-            </svg>
-          </span>
-          Create Signature
-        </button>
       </div>
     </section>
 
@@ -392,6 +395,7 @@ const currentlyMintableAmount = ref(0)
 const lockedMintableAmount = ref(0)
 const stakeCount = ref(0)
 const mintedStakeCount = ref(0)
+const walletBalance = ref(0) // Add wallet balance
 
 // Form data
 const transferData = ref({ to: '', amount: '' })
@@ -456,6 +460,21 @@ function backToWallet() {
   fetchAndDisplayStakes(account.value)
 }
 
+// Function to fetch wallet balance
+async function fetchWalletBalance() {
+  try {
+    if (!account.value || !tokenContract) return;
+    
+    console.log("Fetching wallet balance for:", account.value);
+    const balance = await tokenContract.balanceOf(account.value);
+    console.log("Raw balance:", balance.toString());
+    walletBalance.value = Number(balance);
+    console.log("Wallet balance set to:", walletBalance.value);
+  } catch (error) {
+    console.error("Error fetching wallet balance:", error);
+  }
+}
+
 // Metamask connection
 async function connectToMetaMask() {
   try {
@@ -509,6 +528,9 @@ async function connectToMetaMask() {
           return
         }
       
+        // Fetch wallet balance
+        await fetchWalletBalance()
+        
         // Once connected, fetch stakes data
         console.log("Fetching stakes data...")
         await fetchAndDisplayStakes(account.value)
@@ -784,6 +806,9 @@ async function initiateMint(stake) {
     }
     stakes.value = updatedStakes
     
+    // Update balance after minting
+    await fetchWalletBalance()
+    
       alert(`Successfully minted LiquidHEX for stake ID ${stakeId}`)
     } catch (txError) {
       console.error("Error in transaction:", txError)
@@ -820,6 +845,9 @@ async function handleTransfer() {
     
     alert("Transfer successful!")
     closePopup()
+    
+    // Update balance after transfer
+    await fetchWalletBalance()
   } catch (error) {
     console.error("Error transferring tokens:", error)
     alert(`Error transferring tokens: ${error.message}`)
@@ -1457,6 +1485,7 @@ onMounted(() => {
         // User disconnected all accounts
         account.value = null
         stakes.value = []
+        walletBalance.value = 0 // Reset balance
         console.log("MetaMask disconnected")
       }
     })
@@ -1516,6 +1545,48 @@ function formatAmountDisplay(amount) {
 /* Add padding-top to account for the fixed navbar */
 .mint-container {
   padding-top: 70px; /* Adjust to match navbar height */
+}
+
+/* Compact actions section (new) */
+.compact-actions {
+  padding: 0.5rem 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.compact-actions .action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.compact-actions .action-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: rgba(0, 0, 139, 0.7);
+  border: none;
+  color: white;
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  font-size: 0.9rem;
+}
+
+.compact-actions .action-button:hover {
+  transform: translateY(-2px);
+  background-color: rgba(0, 0, 139, 0.9);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.compact-actions .action-button .icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f39c12;
 }
 
 /* Metrics Overview Section */
@@ -1674,61 +1745,6 @@ function formatAmountDisplay(amount) {
   margin-left: 0.5rem;
 }
 
-/* Action Section */
-.action-section {
-  padding: 1rem;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.section-title {
-  font-size: 1.8rem;
-  color: #f39c12;
-  margin-bottom: 1.5rem;
-  text-align: center;
-}
-
-.action-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  justify-content: center;
-}
-
-.action-button {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  background-color: rgba(0, 0, 139, 0.7);
-  border: none;
-  color: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  width: 180px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-}
-
-.action-button:hover {
-  transform: translateY(-5px);
-  background-color: rgba(0, 0, 139, 0.9);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-}
-
-.action-button .icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 50px;
-  height: 50px;
-  background-color: rgba(243, 156, 18, 0.2);
-  border-radius: 50%;
-  padding: 10px;
-  color: #f39c12;
-}
-
 /* Popup styles */
 .popup-container {
   display: none;
@@ -1871,6 +1887,13 @@ function formatAmountDisplay(amount) {
   padding: 1rem;
   max-width: 1200px;
   margin: 0 auto 3rem;
+}
+
+.section-title {
+  font-size: 1.8rem;
+  color: #f39c12;
+  margin-bottom: 1.5rem;
+  text-align: center;
 }
 
 .filter-options {
