@@ -1718,6 +1718,13 @@ function formatAmountDisplay(amount) {
   display: inline-block;
   left: 50%;
   transform: translateX(-50%);
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, rgba(243, 156, 18, 1) 0%, rgba(255, 165, 0, 0.8) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  padding: 0 1rem;
 }
 
 .section-title::after {
@@ -1730,6 +1737,29 @@ function formatAmountDisplay(amount) {
   height: 4px;
   background: linear-gradient(90deg, rgba(243, 156, 18, 0.8), rgba(255, 165, 0, 0.4));
   border-radius: 2px;
+}
+
+.section-title::before {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  z-index: -1;
+}
+
+@media (max-width: 768px) {
+  .section-title {
+    font-size: 1.8rem;
+    margin: 2rem 0 1.2rem;
+  }
+  
+  .section-title::after {
+    width: 60px;
+    height: 3px;
+  }
 }
 
 /* Action buttons section */
@@ -2115,10 +2145,6 @@ function formatAmountDisplay(amount) {
   .stakes-table th, .stakes-table td {
     padding: 0.8rem 0.5rem;
     font-size: 0.9rem;
-  }
-  
-  .section-title {
-    font-size: 1.8rem;
   }
 }
 
