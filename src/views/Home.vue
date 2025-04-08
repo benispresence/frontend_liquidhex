@@ -1,25 +1,6 @@
 <template>
   <div class="home-container">
-    <nav class="navbar">
-      <div class="navbar-container">
-        <div class="navbar-logo">
-          <img src="/logo.png" alt="LiquidHEX Logo" class="nav-logo">
-          <span class="nav-title">LiquidHEX</span>
-        </div>
-        <div class="navbar-menu-toggle" @click="toggleMenu">
-          <div class="bar" :class="{ 'open': menuOpen }"></div>
-          <div class="bar" :class="{ 'open': menuOpen }"></div>
-          <div class="bar" :class="{ 'open': menuOpen }"></div>
-        </div>
-        <div class="navbar-links" :class="{ 'open': menuOpen }">
-          <a href="#benefits" @click="(e) => scrollToSection(e, 'benefits')">Benefits</a>
-          <a href="#how-it-works" @click="(e) => scrollToSection(e, 'how-it-works')">How it Works</a>
-          <a href="#audit" @click="(e) => scrollToSection(e, 'audit')">Audit</a>
-          <a href="#faq" @click="(e) => scrollToSection(e, 'faq')">FAQ</a>
-          <router-link to="/mint" class="nav-cta-button" @click="closeMenu">Mint Now</router-link>
-        </div>
-      </div>
-    </nav>
+    <Navbar :account="account" @connect="connectWallet" />
 
     <header class="hero">
       <div class="hero-content">
@@ -173,6 +154,16 @@
 
 <script setup>
 import { reactive, ref, onMounted, onBeforeUnmount } from 'vue'
+import Navbar from '../components/Navbar.vue';
+
+// Account state for wallet connection
+const account = ref(null);
+
+// Function to handle wallet connection
+function connectWallet() {
+  // This is a stub - the actual wallet connection will be handled in the Mint page
+  console.log("Connect wallet clicked on Home page");
+}
 
 // Mobile menu state
 const menuOpen = ref(false);
@@ -325,165 +316,10 @@ function toggleCollapse(listType, index) {
 </script>
 
 <style scoped>
-/* Add navigation styles */
-.navbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  background-color: rgba(0, 0, 139, 0.9);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-  z-index: 1000;
-  backdrop-filter: blur(5px);
-}
+/* Remove navbar styles that were moved to the Navbar component */
+/* ... */
 
-.navbar-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0.8rem 1.5rem;
-}
-
-.navbar-logo {
-  display: flex;
-  align-items: center;
-}
-
-.nav-logo {
-  width: 35px;
-  height: 35px;
-  margin-right: 0.5rem;
-}
-
-.nav-title {
-  font-size: 1.3rem;
-  font-weight: bold;
-  color: #fff;
-}
-
-.navbar-links {
-  display: flex;
-  align-items: center;
-}
-
-.navbar-links a {
-  color: rgba(255, 255, 255, 0.9);
-  text-decoration: none;
-  margin-left: 1.5rem;
-  font-weight: 500;
-  transition: color 0.3s ease;
-  position: relative;
-}
-
-.navbar-links a:hover {
-  color: #f39c12;
-}
-
-.navbar-links a::after {
-  content: '';
-  position: absolute;
-  width: 0;
-  height: 2px;
-  bottom: -4px;
-  left: 0;
-  background-color: #f39c12;
-  transition: width 0.3s ease;
-}
-
-.navbar-links a:hover::after {
-  width: 100%;
-}
-
-.nav-cta-button {
-  background: #f39c12;
-  color: #fff !important;
-  padding: 0.5rem 1rem;
-  border-radius: 5px;
-  font-weight: bold;
-  transition: all 0.3s ease;
-}
-
-.nav-cta-button:hover {
-  background: #e67e22;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.nav-cta-button::after {
-  display: none;
-}
-
-.navbar-menu-toggle {
-  display: none;
-  flex-direction: column;
-  justify-content: space-between;
-  width: 30px;
-  height: 21px;
-  cursor: pointer;
-}
-
-.bar {
-  height: 3px;
-  width: 100%;
-  background-color: #fff;
-  border-radius: 2px;
-  transition: all 0.3s ease;
-}
-
-/* Mobile menu styles */
-@media (max-width: 768px) {
-  .navbar-menu-toggle {
-    display: flex;
-    z-index: 1001;
-  }
-  
-  .navbar-links {
-    position: fixed;
-    top: 0;
-    right: -100%;
-    height: 100vh;
-    width: 100%;
-    background-color: rgba(0, 0, 139, 0.95);
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    transition: all 0.5s ease;
-    backdrop-filter: blur(10px);
-  }
-  
-  .navbar-links.open {
-    right: 0;
-  }
-  
-  .navbar-links a {
-    margin: 1.5rem 0;
-    font-size: 1.2rem;
-  }
-  
-  /* Animated hamburger menu */
-  .bar:nth-child(1) {
-    transform-origin: top left;
-  }
-  
-  .bar:nth-child(3) {
-    transform-origin: bottom left;
-  }
-  
-  .bar.open:nth-child(1) {
-    transform: rotate(45deg);
-  }
-  
-  .bar.open:nth-child(2) {
-    opacity: 0;
-  }
-  
-  .bar.open:nth-child(3) {
-    transform: rotate(-45deg);
-  }
-}
-
+/* Keep all other styles */
 .home-container {
   padding-top: 70px; /* Adjust to match navbar height */
 }
