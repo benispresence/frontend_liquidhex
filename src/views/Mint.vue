@@ -1294,8 +1294,38 @@ function createChart() {
            <span><b>${formatLargeNumber(d.mintableAmount)}</b> (${mintablePercent}%)</span>
          </div>`
       )
-      .style('left', `${event.pageX - chartContainer.value.getBoundingClientRect().left + 10}px`)
-      .style('top', `${event.pageY - chartContainer.value.getBoundingClientRect().top - 120}px`)
+      
+      // Get the position of the bar
+      const barX = parseFloat(d3.select(this).attr('x'))
+      const barWidth = parseFloat(d3.select(this).attr('width'))
+      const barY = parseFloat(d3.select(this).attr('y'))
+      
+      // Get container dimensions
+      const chartRect = chartContainer.value.getBoundingClientRect()
+      
+      // Calculate tooltip dimensions
+      const tooltipNode = tooltip.node()
+      const tooltipWidth = tooltipNode.offsetWidth
+      const tooltipHeight = tooltipNode.offsetHeight
+      
+      // Position tooltip to the right of the bar if there's room, otherwise to the left
+      let tooltipX = margin.left + barX + barWidth + 10  // Default: right of bar
+      // If tooltip would go beyond right edge, position left of bar instead
+      if (tooltipX + tooltipWidth > chartRect.width - 20) {
+        tooltipX = margin.left + barX - tooltipWidth - 10  // Left of bar
+      }
+      
+      // Position tooltip vertically centered with the bar
+      let tooltipY = margin.top + barY - (tooltipHeight / 2)
+      // Keep tooltip within the chart container vertically
+      if (tooltipY < 10) tooltipY = 10
+      if (tooltipY + tooltipHeight > chartRect.height - 10) {
+        tooltipY = chartRect.height - tooltipHeight - 10
+      }
+      
+      tooltip
+        .style('left', `${tooltipX}px`)
+        .style('top', `${tooltipY}px`)
     })
     .on('mouseout', function() {
       // Remove highlight on mouseout
