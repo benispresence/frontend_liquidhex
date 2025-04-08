@@ -151,14 +151,21 @@
               <label for="mintProof">Merkle Proof (comma separated hex strings):</label>
               <textarea id="mintProof" v-model="mintData.proof" placeholder="Merkle Proof"></textarea>
             </div>
-            <button class="submit-button" @click="handleMint">Mint LHEX</button>
+            <div class="form-group">
+              <label for="mintSignature">Signature (optional):</label>
+              <input type="text" id="mintSignature" v-model="mintData.signature" placeholder="Optional signature">
+            </div>
+            <div class="form-actions">
+              <button class="action-button" @click="handleAutoPopulate">Auto Populate</button>
+              <button class="submit-button" @click="handleMint">Mint LHEX</button>
+            </div>
           </div>
           
           <!-- Create Signature Form -->
           <div v-if="activePopup === 'signature'" class="form-container">
             <div class="form-group">
-              <label for="sigBurnerAddress">Burner Address:</label>
-              <input type="text" id="sigBurnerAddress" v-model="signatureData.burnerAddress" placeholder="0x...">
+              <label for="sigRecipientAddress">Recipient Address:</label>
+              <input type="text" id="sigRecipientAddress" v-model="signatureData.recipientAddress" placeholder="0x...">
             </div>
             <div class="form-group">
               <label for="sigId">Stake ID:</label>
@@ -168,22 +175,19 @@
               <label for="sigAmount">Amount:</label>
               <input type="text" id="sigAmount" v-model="signatureData.amount" placeholder="Amount in LHEX">
             </div>
-            <div class="form-group">
-              <label for="sigStartDate">Minting Start Date (Unix):</label>
-              <input type="text" id="sigStartDate" v-model="signatureData.startDate" placeholder="Minting Start Date">
-            </div>
-            <div class="form-group">
-              <label for="sigEndDate">Minting End Date (Unix):</label>
-              <input type="text" id="sigEndDate" v-model="signatureData.endDate" placeholder="Minting End Date">
-            </div>
-            <div class="form-group">
-              <label for="sigProof">Merkle Proof (comma separated hex strings):</label>
-              <textarea id="sigProof" v-model="signatureData.proof" placeholder="Merkle Proof"></textarea>
-            </div>
-            <button class="submit-button" @click="handleCreateSignature">Create Signature</button>
+            <button class="submit-button" @click="handleCreateSignature">Generate Signature</button>
             <div v-if="signatureOutput" class="signature-output">
               <h4>Generated Signature:</h4>
               <div class="output-code">{{ signatureOutput }}</div>
+              <button class="copy-button" @click="copySignature">
+                <span class="icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                </span>
+                Copy to Clipboard
+              </button>
             </div>
           </div>
         </div>
@@ -439,8 +443,8 @@ const walletBalance = ref(0) // Add wallet balance
 
 // Form data
 const transferData = ref({ to: '', amount: '' })
-const mintData = ref({ id: '', amount: '', startDate: '', endDate: '', proof: '' })
-const signatureData = ref({ burnerAddress: '', id: '', amount: '', startDate: '', endDate: '', proof: '' })
+const mintData = ref({ id: '', amount: '', startDate: '', endDate: '', proof: '', signature: '' })
+const signatureData = ref({ burnerAddress: '', id: '', amount: '', startDate: '', endDate: '', proof: '', recipientAddress: '' })
 
 // Add filtering options
 const hideExpired = ref(false)
@@ -914,7 +918,7 @@ async function handleMint() {
         !mintData.value.startDate || 
         !mintData.value.endDate || 
         !mintData.value.proof) {
-      alert("All fields are required")
+      alert("All required fields must be filled")
       return
     }
     
@@ -924,17 +928,33 @@ async function handleMint() {
       .map(p => p.trim())
       .filter(p => p !== '')
     
+    // Use provided signature or default to empty
+    const signature = mintData.value.signature || '0x'
+    
+    console.log("Minting with parameters:", {
+      id: mintData.value.id,
+      amount: mintData.value.amount,
+      startDate: mintData.value.startDate,
+      endDate: mintData.value.endDate,
+      proofItems: merkleProofArray.length,
+      signature: signature === '0x' ? 'None (using empty signature)' : 'Provided'
+    })
+    
     const tx = await tokenContract.claim(
       mintData.value.id,
-      ethers.parseEther(mintData.value.amount),
+      mintData.value.amount,
       mintData.value.startDate,
       mintData.value.endDate,
       merkleProofArray,
-      '0x' // Empty signature since we're not using signature-based minting
+      signature
     )
+    
+    console.log("Transaction sent:", tx.hash)
+    console.log("Waiting for transaction confirmation...")
     
     await tx.wait()
     
+    console.log("Transaction confirmed!")
     alert("Manual mint successful!")
     closePopup()
   } catch (error) {
@@ -952,24 +972,38 @@ async function handleCreateSignature() {
     }
     
     // Validate inputs
-    if (!signatureData.value.burnerAddress || 
-        !ethers.isAddress(signatureData.value.burnerAddress) ||
+    if (!signatureData.value.recipientAddress || 
+        !ethers.isAddress(signatureData.value.recipientAddress) ||
         !signatureData.value.id || 
-        !signatureData.value.amount || 
-        !signatureData.value.startDate || 
-        !signatureData.value.endDate || 
-        !signatureData.value.proof) {
+        !signatureData.value.amount) {
       alert("All fields are required and must be valid")
       return
     }
     
-    // This is simplified. In a real implementation, you would:
-    // 1. Create a hash of the parameters
-    // 2. Sign the hash with the user's private key
-    // 3. Format the signature for use in the contract's claimWithSignature function
+    const data = {
+      sender: signatureData.value.recipientAddress,
+      id: signatureData.value.id,
+      amount: signatureData.value.amount
+    }
     
-    // Placeholder for demo purposes
-    signatureOutput.value = "Signature created. This would be a real signature in production."
+    // Create a hash of the parameters to sign
+    const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
+      ['address', 'uint256', 'uint256'],
+      [data.sender, data.id, data.amount]
+    )
+    
+    const messageHash = ethers.keccak256(encoded)
+    
+    // Sign the hash with the user's private key
+    const signature = await window.ethereum.request({
+      method: 'personal_sign',
+      params: [messageHash, account.value]
+    })
+    
+    // Set the signature output
+    signatureOutput.value = signature
+    
+    console.log("Signature generated:", signature)
   } catch (error) {
     console.error("Error creating signature:", error)
     alert(`Error creating signature: ${error.message}`)
@@ -1661,6 +1695,100 @@ function resetDateFilter() {
   chartEndDate.value = ''
   isDateFilterActive.value = false
   renderChart()
+}
+
+// Handle auto-populate
+async function handleAutoPopulate() {
+  try {
+    if (!mintData.value.id) {
+      alert("Please enter a Stake ID first")
+      return
+    }
+    
+    console.log("Auto-populating mint data for Stake ID:", mintData.value.id)
+    
+    // Fetch and parse the base CSV file with retries
+    const csvData = await fetchCSVWithRetry('/merkle_tree_base.csv', 3)
+    
+    // Find the stake with the matching ID
+    const stake = csvData.find(row => row['id'] === mintData.value.id)
+    
+    if (!stake) {
+      alert("Stake ID not found in the data")
+      return
+    }
+    
+    // Populate the form fields with the stake data
+    mintData.value.amount = stake['amount']
+    mintData.value.startDate = stake['minting_start_date']
+    mintData.value.endDate = stake['minting_end_date']
+    
+    // List of Merkle Proof CSV files
+    const proofFiles = [
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_3_until_end_stake_id_174231.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_174242_until_end_stake_id_272449.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_272460_until_end_stake_id_338663.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_338667_until_end_stake_id_385896.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_385899_until_end_stake_id_433470.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_433472_until_end_stake_id_474864.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_474866_until_end_stake_id_513074.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_513075_until_end_stake_id_550468.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_550469_until_end_stake_id_584350.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_584351_until_end_stake_id_614067.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_614069_until_end_stake_id_650060.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_650062_until_end_stake_id_684853.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_684854_until_end_stake_id_722051.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_722054_until_end_stake_id_762413.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_762417_until_end_stake_id_55555516.csv'
+    ]
+    
+    let proofRow = null
+    const stakeId = mintData.value.id
+    
+    // Search through the Merkle Proof CSV files
+    for (const file of proofFiles) {
+      try {
+        const [startStakeId, endStakeId] = file.match(/_stake_id_(\d+)_until_end_stake_id_(\d+)\.csv$/).slice(1, 3).map(Number)
+        if (Number(stakeId) >= startStakeId && Number(stakeId) <= endStakeId) {
+          console.log(`Stake ID ${stakeId} is in range ${startStakeId}-${endStakeId}, fetching file...`)
+          
+          const proofCSVData = await fetchCSVWithRetry(file, 3)
+          proofRow = proofCSVData.find(row => row['stake_id'] == stakeId)
+          
+          if (proofRow) {
+            console.log("Found Merkle proof for stake ID:", stakeId)
+            break
+          }
+        }
+      } catch (error) {
+        console.error(`Error searching in file ${file}:`, error)
+      }
+    }
+    
+    if (!proofRow || !proofRow['proof']) {
+      alert("Merkle Proof not found in any CSV file")
+      return
+    }
+    
+    // Set the Merkle proof in the form
+    mintData.value.proof = proofRow['proof']
+    
+    console.log("Auto-population complete!")
+  } catch (error) {
+    console.error("Error auto-populating mint data:", error)
+    alert(`Error auto-populating mint data: ${error.message}`)
+  }
+}
+
+// Copy signature to clipboard
+function copySignature() {
+  const textArea = document.createElement('textarea')
+  textArea.value = signatureOutput.value
+  document.body.appendChild(textArea)
+  textArea.select()
+  document.execCommand('copy')
+  document.body.removeChild(textArea)
+  alert('Signature copied to clipboard!')
 }
 </script>
 
@@ -2424,5 +2552,53 @@ function resetDateFilter() {
   .popup-content {
     padding: 1rem;
   }
+}
+
+.form-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.action-button {
+  padding: 0.8rem 1.5rem;
+  background-color: rgba(0, 0, 139, 0.6);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: bold;
+  flex-grow: 1;
+}
+
+.action-button:hover {
+  background-color: rgba(0, 0, 139, 0.8);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.copy-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.7rem 1rem;
+  background-color: rgba(33, 150, 243, 0.8);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: bold;
+  width: 100%;
+}
+
+.copy-button:hover {
+  background-color: rgba(33, 150, 243, 1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 </style> 
