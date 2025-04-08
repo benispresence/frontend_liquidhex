@@ -55,14 +55,25 @@
           class="search-button"
           :disabled="!isValidAddress(addressSearch) && addressSearch !== ''"
         >
-          <span class="icon">🔍</span> View
+          <span class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </span> 
+          View
         </button>
         <button 
           v-if="viewedAddress && viewedAddress !== account" 
           @click="backToWallet" 
           class="back-button"
         >
-          <span class="icon">↩️</span> Back to Wallet
+          <span class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 12H5M12 19l-7-7 7-7"></path>
+            </svg>
+          </span>
+          Back to Wallet
         </button>
       </div>
       <div v-if="viewedAddress && viewedAddress !== account" class="viewing-notice">
@@ -105,15 +116,29 @@
       <h2 class="section-title">Management Actions</h2>
       <div class="action-buttons">
         <button class="action-button" @click="showPopup('transfer')">
-          <span class="icon">📤</span>
+          <span class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <polyline points="19 12 12 19 5 12"></polyline>
+            </svg>
+          </span>
           Transfer
         </button>
         <button class="action-button" @click="showPopup('mint')">
-          <span class="icon">🔨</span>
+          <span class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+            </svg>
+          </span>
           Mint Manually
         </button>
         <button class="action-button" @click="showPopup('signature')">
-          <span class="icon">✍️</span>
+          <span class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 11.08V8l-6-6H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h6"></path>
+              <path d="M14 3v5h5M18 21v-6M15 18h6"></path>
+            </svg>
+          </span>
           Create Signature
         </button>
       </div>
@@ -247,10 +272,28 @@
                 <td>{{ formatDate(stake.startDate) }}</td>
                 <td>{{ formatDate(stake.endDate) }}</td>
                 <td class="stake-status">
-                  <span v-if="stake.minted" class="status-icon minted-icon" title="Minted">✓</span>
-                  <span v-else-if="isExpired(stake)" class="status-icon expired-icon" title="Expired">✗</span>
-                  <span v-else-if="isLocked(stake)" class="status-icon locked-icon" title="Locked">🔒</span>
-                  <span v-else class="status-icon mintable-icon" title="Mintable">✓</span>
+                  <span v-if="stake.minted" class="status-icon minted-icon" title="Minted">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 6L9 17l-5-5"></path>
+                    </svg>
+                  </span>
+                  <span v-else-if="isExpired(stake)" class="status-icon expired-icon" title="Expired">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </span>
+                  <span v-else-if="isLocked(stake)" class="status-icon locked-icon" title="Locked">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                  </span>
+                  <span v-else class="status-icon mintable-icon" title="Mintable">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 6L9 17l-5-5"></path>
+                    </svg>
+                  </span>
                 </td>
                 <td>
                   <button 
@@ -331,15 +374,30 @@
     <footer class="footer">
       <div class="footer-links">
         <a href="https://t.me/liquidhex" target="_blank">
-          <span class="icon">💬</span>
+          <span class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+            </svg>
+          </span>
           Group Chat
         </a>
         <a href="https://github.com/benispresence/liquidhex" target="_blank">
-          <span class="icon">📄</span>
+          <span class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 12h-6l-2 3h-4l-2-3H2"></path>
+              <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>
+            </svg>
+          </span>
           Smart Contract Source
         </a>
         <a href="https://github.com/benispresence/frontend_liquidhex" target="_blank">
-          <span class="icon">💻</span>
+          <span class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+          </span>
           Frontend Source
         </a>
       </div>
@@ -2064,7 +2122,9 @@ function formatAmountDisplay(amount) {
 }
 
 .icon {
-  font-size: 1.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .copyright {
@@ -2237,33 +2297,32 @@ function formatAmountDisplay(amount) {
 }
 
 .status-icon {
-  display: inline-block;
+  display: inline-flex;
   width: 24px;
   height: 24px;
-  line-height: 24px;
-  text-align: center;
+  align-items: center;
+  justify-content: center;
   border-radius: 50%;
-  font-weight: bold;
 }
 
 .minted-icon {
-  background-color: rgba(76, 175, 80, 0.3);
   color: #4CAF50;
+  background-color: rgba(76, 175, 80, 0.2);
 }
 
 .expired-icon {
-  background-color: rgba(244, 67, 54, 0.3);
   color: #F44336;
+  background-color: rgba(244, 67, 54, 0.2);
 }
 
 .locked-icon {
-  background-color: rgba(255, 152, 0, 0.3);
   color: #FF9800;
+  background-color: rgba(255, 152, 0, 0.2);
 }
 
 .mintable-icon {
-  background-color: rgba(33, 150, 243, 0.3);
   color: #2196F3;
+  background-color: rgba(33, 150, 243, 0.2);
 }
 
 /* Stake row status styles */
