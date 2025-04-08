@@ -113,7 +113,7 @@
 
     <!-- Action buttons section -->
     <section class="action-section">
-      <h2 class="section-title">Management Actions</h2>
+      <h2 class="section-title">Manual Actions</h2>
       <div class="action-buttons">
         <button class="action-button" @click="showPopup('transfer')">
           <span class="icon">
@@ -1771,30 +1771,35 @@ function formatAmountDisplay(amount) {
   font-size: 2.2rem;
   margin: 2.5rem 0 1.5rem;
   text-align: center;
-  color: #fff;
+  color: #f39c12;
   position: relative;
-  display: inline-block;
-  left: 50%;
-  transform: translateX(-50%);
+  width: 100%;
   font-weight: 600;
   letter-spacing: 1px;
   text-transform: uppercase;
-  background: linear-gradient(135deg, rgba(243, 156, 18, 1) 0%, rgba(255, 165, 0, 0.8) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  padding: 0 1rem;
 }
 
 .section-title::after {
   content: '';
   position: absolute;
   bottom: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 80px;
-  height: 4px;
-  background: linear-gradient(90deg, rgba(243, 156, 18, 0.8), rgba(255, 165, 0, 0.4));
+  right: 25%;
+  width: 300px;
+  height: 3px;
+  background: linear-gradient(90deg, rgba(243, 156, 18, 0.4), rgba(243, 156, 18, 0.8));
   border-radius: 2px;
+}
+
+@media (max-width: 768px) {
+  .section-title {
+    font-size: 1.8rem;
+    margin: 2rem 0 1.2rem;
+  }
+  
+  .section-title::after {
+    right: 15%;
+    width: 200px;
+  }
 }
 
 .section-title::before {
@@ -1806,18 +1811,6 @@ function formatAmountDisplay(amount) {
   height: 1px;
   background: rgba(255, 255, 255, 0.1);
   z-index: -1;
-}
-
-@media (max-width: 768px) {
-  .section-title {
-    font-size: 1.8rem;
-    margin: 2rem 0 1.2rem;
-  }
-  
-  .section-title::after {
-    width: 60px;
-    height: 3px;
-  }
 }
 
 /* Action buttons section */

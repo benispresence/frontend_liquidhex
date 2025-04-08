@@ -640,11 +640,16 @@ function toggleCollapse(listType, index) {
   flex-direction: column;
   align-items: center;
   margin-bottom: 3rem;
+  padding: 0 1.5rem;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
 }
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
   width: 100%;
 }
@@ -653,9 +658,10 @@ function toggleCollapse(listType, index) {
   background-color: rgba(57, 52, 36, 0.8);
   border-radius: 10px;
   padding: 1.5rem;
-  height: 100%;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: flex;
+  flex-direction: column;
 }
 
 .card:hover {
@@ -783,39 +789,19 @@ function toggleCollapse(listType, index) {
 }
 
 /* Responsive design */
+@media (max-width: 992px) {
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
-  .hero {
-    height: auto;
-    padding: 4rem 0;
-  }
-  
-  .hero-title {
-    font-size: 2.5rem;
-  }
-  
-  .hero-subtitle {
-    font-size: 1.2rem;
-  }
-  
-  .section-title {
-    font-size: 1.8rem;
-  }
-  
   .card-grid {
     grid-template-columns: 1fr;
   }
   
-  .footer-links {
-    flex-direction: column;
-    gap: 1rem;
-  }
-  
-  .contract-address {
-    flex-direction: column;
-  }
-  
-  .contract-address code {
-    font-size: 0.9rem;
+  .benefits-section, .info-section {
+    padding: 0 1rem;
   }
 }
 
