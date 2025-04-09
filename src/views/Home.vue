@@ -1,6 +1,6 @@
 <template>
   <div class="home-container">
-    <Navbar :account="account" @connect="connectWallet" />
+    <Navbar />
 
     <header class="hero">
       <div class="hero-content">
@@ -155,15 +155,6 @@
 <script setup>
 import { reactive, ref, onMounted, onBeforeUnmount } from 'vue'
 import Navbar from '../components/Navbar.vue';
-
-// Account state for wallet connection
-const account = ref(null);
-
-// Function to handle wallet connection
-function connectWallet() {
-  // This is a stub - the actual wallet connection will be handled in the Mint page
-  console.log("Connect wallet clicked on Home page");
-}
 
 // Mobile menu state
 const menuOpen = ref(false);

@@ -18,7 +18,7 @@
         <a href="/#how-it-works" @click="scrollToSection('how-it-works')">How it Works</a>
         <a href="/#faq" @click="scrollToSection('faq')">FAQ</a>
         <router-link to="/mint" class="nav-cta-button" @click="closeMenu">Mint Now</router-link>
-        <div class="wallet-connection">
+        <div class="wallet-connection" v-if="!isHomePage">
           <button 
             class="connect-button" 
             @click="connectWallet"
@@ -36,7 +36,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 
 // Props to receive from parent components
@@ -56,6 +56,11 @@ const menuOpen = ref(false);
 // Router and route instances
 const router = useRouter();
 const route = useRoute();
+
+// Determine if we're on the home page
+const isHomePage = computed(() => {
+  return route.path === '/';
+});
 
 // Store event listeners for cleanup
 const eventListeners = ref([]);
