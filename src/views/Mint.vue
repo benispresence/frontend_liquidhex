@@ -1,6 +1,15 @@
 <template>
   <div class="mint-container">
     <Navbar :account="account" @connect="connectToMetaMask" />
+    
+    <!-- Add Notification component -->
+    <Notification
+      v-if="showNotification"
+      :type="notificationType"
+      :title="notificationTitle"
+      :message="notificationMessage"
+      @close="showNotification = false"
+    />
 
     <!-- Metrics Overview Section -->
     <section class="metrics-overview" v-if="account">
@@ -422,6 +431,7 @@ import { ethers } from 'ethers'
 import Papa from 'papaparse'
 import { liquidHexABI, liquidHexAddress } from '../contracts/liquidHexABI.js'
 import Navbar from '../components/Navbar.vue';
+import Notification from '../components/Notification.vue';
 
 // State variables
 const account = ref(null)
@@ -458,6 +468,13 @@ const chartStartDate = ref('')
 const chartEndDate = ref('')
 const isDateFilterActive = ref(false)
 const isLimitingBars = ref(false)
+
+// Add notification state variables
+const showNotification = ref(false);
+const notificationType = ref('info');
+const notificationTitle = ref('');
+const notificationMessage = ref('');
+const isMinting = ref(false);
 
 // Get popup title based on active popup
 function getPopupTitle() {
@@ -738,19 +755,19 @@ function initializeEmptyTable() {
 async function initiateMint(stake) {
   try {
     if (!account.value) {
-      alert("Please connect your wallet first")
-      return
+      showNotificationMessage('error', 'Wallet Not Connected', 'Please connect your wallet first');
+      return;
     }
     
-    console.log("Initiating mint for stake:", stake)
+    console.log("Initiating mint for stake:", stake);
     
     // Extract stake information
-    const stakeId = stake.id
-    const amount = stake.amount
-    const startDate = stake.startDate
-    const endDate = stake.endDate
+    const stakeId = stake.id;
+    const amount = stake.amount;
+    const startDate = stake.startDate;
+    const endDate = stake.endDate;
 
-    console.log("Looking for merkle proof for stake ID:", stakeId)
+    console.log("Looking for merkle proof for stake ID:", stakeId);
     
     // List of Merkle Proof CSV files
     const proofFiles = [
@@ -769,54 +786,54 @@ async function initiateMint(stake) {
       '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_684854_until_end_stake_id_722051.csv',
       '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_722054_until_end_stake_id_762413.csv',
       '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_762417_until_end_stake_id_55555516.csv'
-    ]
+    ];
 
-    let proofRow = null
+    let proofRow = null;
 
     // Search through the Merkle Proof CSV files
     for (const file of proofFiles) {
       try {
-        const [startStakeId, endStakeId] = file.match(/_stake_id_(\d+)_until_end_stake_id_(\d+)\.csv$/).slice(1, 3).map(Number)
+        const [startStakeId, endStakeId] = file.match(/_stake_id_(\d+)_until_end_stake_id_(\d+)\.csv$/).slice(1, 3).map(Number);
         if (Number(stakeId) >= startStakeId && Number(stakeId) <= endStakeId) {
-          console.log(`Stake ID ${stakeId} is in range ${startStakeId}-${endStakeId}, fetching file...`)
-          const response = await fetch(file)
+          console.log(`Stake ID ${stakeId} is in range ${startStakeId}-${endStakeId}, fetching file...`);
+          const response = await fetch(file);
           if (!response.ok) {
-            console.error(`Failed to fetch ${file}: ${response.status}`)
-            continue
+            console.error(`Failed to fetch ${file}: ${response.status}`);
+            continue;
           }
           
-          const csvText = await response.text()
-          console.log(`Proof file loaded, size: ${csvText.length} bytes`)
+          const csvText = await response.text();
+          console.log(`Proof file loaded, size: ${csvText.length} bytes`);
           
-          const proofCSVData = Papa.parse(csvText, { header: true }).data
+          const proofCSVData = Papa.parse(csvText, { header: true }).data;
           
-          proofRow = proofCSVData.find(row => row['stake_id'] == stakeId)
+          proofRow = proofCSVData.find(row => row['stake_id'] == stakeId);
           if (proofRow) {
-            console.log("Found merkle proof for stake ID:", stakeId)
-            break
+            console.log("Found merkle proof for stake ID:", stakeId);
+            break;
           }
         }
       } catch (error) {
-        console.error(`Error processing file ${file}:`, error)
+        console.error(`Error processing file ${file}:`, error);
       }
     }
 
     if (!proofRow || !proofRow['proof']) {
-      alert("Merkle Proof not found in any CSV file.")
-      return
+      showNotificationMessage('error', 'Proof Not Found', 'Merkle Proof not found in any CSV file.');
+      return;
     }
 
-    const merkleProof = proofRow['proof'].split(',')
-    console.log("Merkle proof loaded:", merkleProof.length, "items")
+    const merkleProof = proofRow['proof'].split(',');
+    console.log("Merkle proof loaded:", merkleProof.length, "items");
 
-    const signature = '0x' // Empty signature since we're not using signature-based minting
+    const signature = '0x'; // Empty signature since we're not using signature-based minting
 
     // Get current gas prices
-    const gasPrice = await provider.getFeeData()
-    console.log("Current gas price:", gasPrice)
+    const gasPrice = await provider.getFeeData();
+    console.log("Current gas price:", gasPrice);
     
-    const priorityFee = Math.round(Number(gasPrice.maxFeePerGas) * 0.2)
-    const gasLimit = 350000
+    const priorityFee = Math.round(Number(gasPrice.maxFeePerGas) * 0.2);
+    const gasLimit = 350000;
     
     try {
       console.log("Preparing transaction with params:", {
@@ -825,10 +842,20 @@ async function initiateMint(stake) {
         startDate,
         endDate,
         proofItems: merkleProof.length
-      })
+      });
     
-    // Call the contract to mint tokens
-    const tx = await tokenContract.claim(
+      // Set loading state
+      isMinting.value = true;
+      
+      // Show transaction submitted notification
+      showNotificationMessage(
+        'info',
+        'Transaction Submitted',
+        'Your mint transaction has been submitted to the network'
+      );
+
+      // Call the contract to mint tokens
+      const tx = await tokenContract.claim(
         stakeId,
         amount,
         startDate,
@@ -840,33 +867,53 @@ async function initiateMint(stake) {
           maxPriorityFeePerGas: priorityFee,
           maxFeePerGas: gasPrice.maxFeePerGas
         }
-      )
+      );
       
-      console.log("Transaction sent:", tx.hash)
-      console.log("Waiting for transaction confirmation...")
+      console.log("Transaction sent:", tx.hash);
+      console.log("Waiting for transaction confirmation...");
     
-    await tx.wait()
-      console.log("Transaction confirmed!")
+      await tx.wait();
+      console.log("Transaction confirmed!");
     
-    // Mark the stake as minted after successful transaction
-    const updatedStakes = [...stakes.value]
-      const stakeIndex = updatedStakes.findIndex(s => s.id === stakeId)
-    if (stakeIndex !== -1) {
-      updatedStakes[stakeIndex].minted = true
-    }
-    stakes.value = updatedStakes
+      // Mark the stake as minted after successful transaction
+      const updatedStakes = [...stakes.value];
+      const stakeIndex = updatedStakes.findIndex(s => s.id === stakeId);
+      if (stakeIndex !== -1) {
+        updatedStakes[stakeIndex].minted = true;
+      }
+      stakes.value = updatedStakes;
     
-    // Update balance after minting
-    await fetchWalletBalance()
+      // Update balance after minting
+      await fetchWalletBalance();
     
-      alert(`Successfully minted LiquidHEX for stake ID ${stakeId}`)
+      // Show success notification
+      showNotificationMessage(
+        'success',
+        'Mint Successful!',
+        `Congratulations! You have successfully minted ${formatAmountDisplay(amount)} LHEX`
+      );
+
+      // Reload the page after a short delay to update metrics
+      setTimeout(() => {
+        window.location.reload();
+      }, 3000);
     } catch (txError) {
-      console.error("Error in transaction:", txError)
-      alert(`Error minting: ${txError.message}`)
+      console.error("Error in transaction:", txError);
+      showNotificationMessage(
+        'error',
+        'Transaction Failed',
+        txError.message || 'Failed to mint LiquidHEX'
+      );
     }
   } catch (error) {
-    console.error("Error minting:", error)
-    alert(`Error minting: ${error.message}`)
+    console.error("Error minting:", error);
+    showNotificationMessage(
+      'error',
+      'Mint Failed',
+      error.message || 'Failed to mint LiquidHEX'
+    );
+  } finally {
+    isMinting.value = false;
   }
 }
 
@@ -1790,6 +1837,73 @@ function copySignature() {
   document.body.removeChild(textArea)
   alert('Signature copied to clipboard!')
 }
+
+// Add notification helper function
+function showNotificationMessage(type, title, message) {
+  notificationType.value = type;
+  notificationTitle.value = title;
+  notificationMessage.value = message;
+  showNotification.value = true;
+}
+
+// Update mintLiquidHex function
+async function mintLiquidHex() {
+  if (!account.value) {
+    showNotificationMessage('error', 'Wallet Not Connected', 'Please connect your wallet first');
+    return;
+  }
+
+  if (!isValidMint.value) {
+    showNotificationMessage('error', 'Invalid Mint', 'Please check your mint parameters');
+    return;
+  }
+
+  try {
+    isMinting.value = true;
+    
+    // Show transaction submitted notification
+    showNotificationMessage(
+      'info',
+      'Transaction Submitted',
+      'Your mint transaction has been submitted to the network'
+    );
+
+    // Execute mint transaction
+    const tx = await tokenContract.mint(
+      selectedStake.value.stakeId,
+      selectedStake.value.amount,
+      selectedStake.value.proof
+    );
+
+    // Wait for transaction to be mined
+    const receipt = await tx.wait();
+
+    if (receipt.status === 1) {
+      // Show success notification
+      showNotificationMessage(
+        'success',
+        'Mint Successful!',
+        `Congratulations! You have successfully minted ${selectedStake.value.amount} LHEX`
+      );
+
+      // Reload the page after a short delay to update metrics
+      setTimeout(() => {
+        window.location.reload();
+      }, 3000);
+    } else {
+      showNotificationMessage('error', 'Transaction Failed', 'The mint transaction failed');
+    }
+  } catch (error) {
+    console.error('Mint error:', error);
+    showNotificationMessage(
+      'error',
+      'Mint Failed',
+      error.message || 'Failed to mint LiquidHEX'
+    );
+  } finally {
+    isMinting.value = false;
+  }
+}
 </script>
 
 <style scoped>
@@ -2600,5 +2714,34 @@ function copySignature() {
   background-color: rgba(33, 150, 243, 1);
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Add loading spinner styles */
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.mint-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 200px;
+}
+
+.mint-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 </style> 
