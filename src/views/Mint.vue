@@ -13,15 +13,15 @@
           <div class="metric-item">
             <span class="metric-title">Currently Mintable:</span>
             <span class="metric-value">{{ formatAmountDisplay(currentlyMintableAmount) }}</span>
-          </div>
+        </div>
           <div class="metric-item">
             <span class="metric-title">Stakes Minted:</span>
             <span class="metric-value">{{ mintedStakeCount }}/{{ stakeCount }}</span>
-          </div>
+        </div>
           <div class="metric-item">
             <span class="metric-title">Minted Amount:</span>
             <span class="metric-value">{{ formatAmountDisplay(mintedAmount) }}</span>
-          </div>
+      </div>
           <div class="metric-item">
             <span class="metric-title">Locked Mintable:</span>
             <span class="metric-value">{{ formatAmountDisplay(lockedMintableAmount) }}</span>
@@ -29,8 +29,8 @@
           <div class="metric-item">
             <span class="metric-title">LHEX Balance:</span>
             <span class="metric-value">{{ formatAmountDisplay(walletBalance) }}</span>
-          </div>
         </div>
+      </div>
       </div>
     </section>
 
@@ -157,7 +157,7 @@
             </div>
             <div class="form-actions">
               <button class="action-button" @click="handleAutoPopulate">Auto Populate</button>
-              <button class="submit-button" @click="handleMint">Mint LHEX</button>
+            <button class="submit-button" @click="handleMint">Mint LHEX</button>
             </div>
           </div>
           
@@ -536,7 +536,7 @@ async function connectToMetaMask() {
       try {
         // Request account access
         console.log("Requesting account access...")
-        await window.ethereum.request({ method: 'eth_requestAccounts' })
+      await window.ethereum.request({ method: 'eth_requestAccounts' })
         
         // Initialize provider
         console.log("Initializing ethers provider...")
@@ -555,17 +555,17 @@ async function connectToMetaMask() {
         
         // Get signer (wallet)
         console.log("Getting signer...")
-        signer = await provider.getSigner()
+      signer = await provider.getSigner()
         
         // Get account address
         console.log("Getting account address...")
-        account.value = await signer.getAddress()
+      account.value = await signer.getAddress()
         viewedAddress.value = account.value // Initialize viewed address to own wallet
         console.log("Connected account:", account.value)
         
         // Initialize contract
         console.log("Initializing contract instance...")
-        tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer)
+      tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer)
         console.log("Contract instance created:", tokenAddress)
         
         // Verify contract connectivity
@@ -580,10 +580,10 @@ async function connectToMetaMask() {
       
         // Fetch wallet balance
         await fetchWalletBalance()
-        
-        // Once connected, fetch stakes data
+      
+      // Once connected, fetch stakes data
         console.log("Fetching stakes data...")
-        await fetchAndDisplayStakes(account.value)
+      await fetchAndDisplayStakes(account.value)
       } catch (ethersError) {
         console.error("Error during Ethers setup:", ethersError)
         alert(`Error setting up Ethers: ${ethersError.message || ethersError}`)
@@ -2559,9 +2559,9 @@ function copySignature() {
   justify-content: space-between;
   gap: 1rem;
   margin-top: 1rem;
-}
-
-.action-button {
+  }
+  
+  .action-button {
   padding: 0.8rem 1.5rem;
   background-color: rgba(0, 0, 139, 0.6);
   color: white;
