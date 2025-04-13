@@ -146,7 +146,36 @@
             </div>
             <div class="form-group">
               <label for="mintAmount">Amount:</label>
-              <input type="text" id="mintAmount" v-model="mintData.amount" placeholder="Amount in LHEX">
+              <div class="amount-input-container">
+                <input 
+                  type="text" 
+                  id="mintAmount" 
+                  v-model="mintData.amount" 
+                  :placeholder="mintData.amountFormat === 'lhex' ? 'Amount in LHEX' : 'Amount in LHEX hearts'"
+                >
+                <div class="amount-format-toggle">
+                  <button 
+                    :class="{ active: mintData.amountFormat === 'lhex' }"
+                    @click="mintData.amountFormat = 'lhex'"
+                  >
+                    LHEX
+                  </button>
+                  <button 
+                    :class="{ active: mintData.amountFormat === 'hearts' }"
+                    @click="mintData.amountFormat = 'hearts'"
+                  >
+                    Hearts
+                  </button>
+                </div>
+              </div>
+              <div class="amount-info">
+                <span v-if="mintData.amountFormat === 'lhex'">
+                  1 LHEX = 100,000,000 Hearts
+                </span>
+                <span v-else>
+                  Hearts are the smallest unit (1 LHEX = 100,000,000 Hearts)
+                </span>
+              </div>
             </div>
             <div class="form-group">
               <label for="mintStartDate">Minting Start Date (Unix):</label>
@@ -182,7 +211,36 @@
             </div>
             <div class="form-group">
               <label for="sigAmount">Amount:</label>
-              <input type="text" id="sigAmount" v-model="signatureData.amount" placeholder="Amount in LHEX">
+              <div class="amount-input-container">
+                <input 
+                  type="text" 
+                  id="sigAmount" 
+                  v-model="signatureData.amount" 
+                  :placeholder="signatureData.amountFormat === 'lhex' ? 'Amount in LHEX' : 'Amount in LHEX hearts'"
+                >
+                <div class="amount-format-toggle">
+                  <button 
+                    :class="{ active: signatureData.amountFormat === 'lhex' }"
+                    @click="signatureData.amountFormat = 'lhex'"
+                  >
+                    LHEX
+                  </button>
+                  <button 
+                    :class="{ active: signatureData.amountFormat === 'hearts' }"
+                    @click="signatureData.amountFormat = 'hearts'"
+                  >
+                    Hearts
+                  </button>
+                </div>
+              </div>
+              <div class="amount-info">
+                <span v-if="signatureData.amountFormat === 'lhex'">
+                  1 LHEX = 100,000,000 Hearts
+                </span>
+                <span v-else>
+                  Hearts are the smallest unit (1 LHEX = 100,000,000 Hearts)
+                </span>
+              </div>
             </div>
             <button class="submit-button" @click="handleCreateSignature">Generate Signature</button>
             <div v-if="signatureOutput" class="signature-output">
@@ -453,8 +511,25 @@ const walletBalance = ref(0) // Add wallet balance
 
 // Form data
 const transferData = ref({ to: '', amount: '' })
-const mintData = ref({ id: '', amount: '', startDate: '', endDate: '', proof: '', signature: '' })
-const signatureData = ref({ burnerAddress: '', id: '', amount: '', startDate: '', endDate: '', proof: '', recipientAddress: '' })
+const mintData = ref({ 
+  id: '', 
+  amount: '', 
+  amountFormat: 'lhex', // 'lhex' or 'hearts'
+  startDate: '', 
+  endDate: '', 
+  proof: '', 
+  signature: '' 
+})
+const signatureData = ref({ 
+  burnerAddress: '', 
+  id: '', 
+  amount: '', 
+  amountFormat: 'lhex', // 'lhex' or 'hearts'
+  startDate: '', 
+  endDate: '', 
+  proof: '', 
+  recipientAddress: '' 
+})
 
 // Add filtering options
 const hideExpired = ref(false)
@@ -955,8 +1030,8 @@ async function handleTransfer() {
 async function handleMint() {
   try {
     if (!account.value) {
-      alert("Please connect your wallet first")
-      return
+      showNotificationMessage('error', 'Wallet Not Connected', 'Please connect your wallet first');
+      return;
     }
     
     // Validate inputs
@@ -965,9 +1040,12 @@ async function handleMint() {
         !mintData.value.startDate || 
         !mintData.value.endDate || 
         !mintData.value.proof) {
-      alert("All required fields must be filled")
-      return
+      showNotificationMessage('error', 'Missing Fields', 'All required fields must be filled');
+      return;
     }
+    
+    // Convert amount to hearts format for contract interaction
+    const amountInHearts = convertToHearts(mintData.value.amount, mintData.value.amountFormat);
     
     // Parse merkle proof string into array
     const merkleProofArray = mintData.value.proof
@@ -980,7 +1058,7 @@ async function handleMint() {
     
     console.log("Minting with parameters:", {
       id: mintData.value.id,
-      amount: mintData.value.amount,
+      amount: amountInHearts,
       startDate: mintData.value.startDate,
       endDate: mintData.value.endDate,
       proofItems: merkleProofArray.length,
@@ -989,7 +1067,7 @@ async function handleMint() {
     
     const tx = await tokenContract.claim(
       mintData.value.id,
-      mintData.value.amount,
+      amountInHearts,
       mintData.value.startDate,
       mintData.value.endDate,
       merkleProofArray,
@@ -1002,11 +1080,11 @@ async function handleMint() {
     await tx.wait()
     
     console.log("Transaction confirmed!")
-    alert("Manual mint successful!")
+    showNotificationMessage('success', 'Mint Successful', 'Manual mint successful!');
     closePopup()
   } catch (error) {
     console.error("Error with manual mint:", error)
-    alert(`Error with manual mint: ${error.message}`)
+    showNotificationMessage('error', 'Mint Failed', error.message || 'Failed to mint LiquidHEX');
   }
 }
 
@@ -1014,8 +1092,8 @@ async function handleMint() {
 async function handleCreateSignature() {
   try {
     if (!account.value) {
-      alert("Please connect your wallet first")
-      return
+      showNotificationMessage('error', 'Wallet Not Connected', 'Please connect your wallet first');
+      return;
     }
     
     // Validate inputs
@@ -1023,14 +1101,17 @@ async function handleCreateSignature() {
         !ethers.isAddress(signatureData.value.recipientAddress) ||
         !signatureData.value.id || 
         !signatureData.value.amount) {
-      alert("All fields are required and must be valid")
-      return
+      showNotificationMessage('error', 'Invalid Input', 'All fields are required and must be valid');
+      return;
     }
+    
+    // Convert amount to hearts format for contract interaction
+    const amountInHearts = convertToHearts(signatureData.value.amount, signatureData.value.amountFormat);
     
     const data = {
       sender: signatureData.value.recipientAddress,
       id: signatureData.value.id,
-      amount: signatureData.value.amount
+      amount: amountInHearts
     }
     
     // Create a hash of the parameters to sign
@@ -1053,7 +1134,7 @@ async function handleCreateSignature() {
     console.log("Signature generated:", signature)
   } catch (error) {
     console.error("Error creating signature:", error)
-    alert(`Error creating signature: ${error.message}`)
+    showNotificationMessage('error', 'Signature Failed', error.message || 'Failed to create signature');
   }
 }
 
@@ -1904,6 +1985,21 @@ async function mintLiquidHex() {
     isMinting.value = false;
   }
 }
+
+// Add helper functions for amount conversion
+function convertToHearts(amount, format) {
+  if (!amount) return '0';
+  const num = Number(amount);
+  if (isNaN(num)) return '0';
+  return format === 'lhex' ? (num * 1e8).toString() : num.toString();
+}
+
+function convertToLhex(amount, format) {
+  if (!amount) return '0';
+  const num = Number(amount);
+  if (isNaN(num)) return '0';
+  return format === 'hearts' ? (num / 1e8).toString() : num.toString();
+}
 </script>
 
 <style scoped>
@@ -2743,5 +2839,42 @@ async function mintLiquidHex() {
 .mint-button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+}
+
+.amount-input-container {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.amount-format-toggle {
+  display: flex;
+  background-color: rgba(0, 0, 139, 0.7);
+  border-radius: 30px;
+  overflow: hidden;
+  padding: 5px;
+}
+
+.amount-format-toggle button {
+  padding: 0.5rem 1rem;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.amount-format-toggle button.active {
+  background-color: #f39c12;
+  border-radius: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.amount-info {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-style: italic;
 }
 </style> 
