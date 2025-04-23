@@ -715,7 +715,7 @@ async function fetchAndDisplayStakes(address) {
     // Clear any existing stakes
     stakes.value = []
     
-    if (!account.value) {
+    if (!address) {
       console.error("No address provided to fetch stakes")
       return
     }
@@ -790,9 +790,9 @@ async function fetchAndDisplayStakes(address) {
           } else {
             // Currently mintable stakes
             currentlyMintableAmountSum += amount;
-      }
-    }
-  } catch (error) {
+          }
+        }
+      } catch (error) {
         console.error(`Error processing stake:`, error, stake);
       }
     }
@@ -804,6 +804,18 @@ async function fetchAndDisplayStakes(address) {
     lockedMintableAmount.value = lockedMintableAmountSum;
     stakeCount.value = stakeCountSum;
     mintedStakeCount.value = mintedStakeCountSum;
+    
+    // Fetch wallet balance for the viewed address
+    if (tokenContract) {
+      try {
+        const balance = await tokenContract.balanceOf(address);
+        walletBalance.value = Number(balance);
+        console.log("Wallet balance for", address, ":", walletBalance.value);
+      } catch (error) {
+        console.error("Error fetching wallet balance:", error);
+        walletBalance.value = 0;
+      }
+    }
     
     console.log("Total stakes loaded:", stakes.value.length);
     console.log("Stats:", {
