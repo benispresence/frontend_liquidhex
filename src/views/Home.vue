@@ -313,6 +313,7 @@ function toggleCollapse(listType, index) {
 /* Keep all other styles */
 .home-container {
   padding-top: 70px; /* Adjust to match navbar height */
+  overflow-x: hidden; /* Prevent horizontal scrolling */
 }
 
 .hero {
@@ -324,6 +325,7 @@ function toggleCollapse(listType, index) {
   text-align: center;
   position: relative;
   overflow: hidden;
+  padding: 1rem;
 }
 
 .hero::before {
@@ -345,7 +347,7 @@ function toggleCollapse(listType, index) {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   animation: fadeIn 1s ease-out;
   max-width: 600px;
-  width: 100%;
+  width: calc(100% - 2rem);
 }
 
 @keyframes fadeIn {
@@ -375,6 +377,8 @@ function toggleCollapse(listType, index) {
   font-weight: bold;
   color: #fff;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  word-wrap: break-word;
+  hyphens: auto;
 }
 
 .hero-subtitle {
@@ -382,6 +386,7 @@ function toggleCollapse(listType, index) {
   margin: 0 0 2rem;
   color: rgba(255, 255, 255, 0.9);
   font-weight: 300;
+  word-wrap: break-word;
 }
 
 .cta-button {
@@ -399,6 +404,7 @@ function toggleCollapse(listType, index) {
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 1px;
+  white-space: nowrap;
 }
 
 .cta-button:hover {
@@ -410,7 +416,8 @@ function toggleCollapse(listType, index) {
 .contract-info {
   margin: 2rem 0;
   text-align: center;
-  padding: 1rem 0;
+  padding: 1rem;
+  box-sizing: border-box;
 }
 
 .info-box {
@@ -420,6 +427,7 @@ function toggleCollapse(listType, index) {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   max-width: 800px;
   margin: 0 auto;
+  width: calc(100% - 2rem);
 }
 
 .contract-address {
@@ -439,6 +447,8 @@ function toggleCollapse(listType, index) {
   font-size: 1rem;
   user-select: all;
   word-break: break-all;
+  max-width: 100%;
+  overflow-wrap: break-word;
 }
 
 .section-title {
@@ -448,6 +458,8 @@ function toggleCollapse(listType, index) {
   color: #fff;
   position: relative;
   display: inline-block;
+  width: 100%;
+  word-wrap: break-word;
 }
 
 .section-title::after {
@@ -472,6 +484,7 @@ function toggleCollapse(listType, index) {
   margin-left: auto;
   margin-right: auto;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .card-grid {
@@ -489,6 +502,8 @@ function toggleCollapse(listType, index) {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   display: flex;
   flex-direction: column;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .card:hover {
@@ -503,12 +518,14 @@ function toggleCollapse(listType, index) {
   margin-bottom: 1rem;
   border-bottom: 2px solid rgba(243, 156, 18, 0.3);
   padding-bottom: 0.5rem;
+  word-wrap: break-word;
 }
 
 .card p {
   font-size: 1rem;
   line-height: 1.5;
   margin: 0;
+  word-wrap: break-word;
 }
 
 .collapsible-list {
@@ -537,11 +554,17 @@ function toggleCollapse(listType, index) {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .collapsible-header h4 {
   margin: 0;
   font-size: 1.1rem;
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .toggle-icon {
@@ -549,6 +572,7 @@ function toggleCollapse(listType, index) {
   align-items: center;
   justify-content: center;
   transition: transform 0.3s ease;
+  flex-shrink: 0;
 }
 
 .toggle-icon.open {
@@ -571,6 +595,8 @@ function toggleCollapse(listType, index) {
   font-size: 1rem;
   line-height: 1.5;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .footer {
@@ -579,6 +605,7 @@ function toggleCollapse(listType, index) {
   text-align: center;
   margin-top: 4rem;
   border-radius: 10px 10px 0 0;
+  width: 100%;
 }
 
 .footer-links {
@@ -587,6 +614,7 @@ function toggleCollapse(listType, index) {
   flex-wrap: wrap;
   gap: 1.5rem;
   margin-bottom: 1.5rem;
+  padding: 0 1rem;
 }
 
 .footer-links a {
@@ -597,6 +625,8 @@ function toggleCollapse(listType, index) {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  padding: 0.5rem;
+  min-height: 44px; /* Better touch target */
 }
 
 .footer-links a:hover {
@@ -620,6 +650,10 @@ function toggleCollapse(listType, index) {
   .card-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+  
+  .hero-title {
+    font-size: 3rem;
+  }
 }
 
 @media (max-width: 768px) {
@@ -629,6 +663,30 @@ function toggleCollapse(listType, index) {
   
   .benefits-section, .info-section {
     padding: 0 1rem;
+  }
+  
+  .hero-title {
+    font-size: 2.5rem;
+  }
+  
+  .hero-subtitle {
+    font-size: 1.3rem;
+  }
+  
+  .section-title {
+    font-size: 1.8rem;
+  }
+  
+  .collapsible-header {
+    padding: 1rem;
+  }
+  
+  .collapsible-content p {
+    padding: 1rem;
+  }
+  
+  .hero-content {
+    padding: 1.5rem;
   }
 }
 
@@ -641,6 +699,11 @@ function toggleCollapse(listType, index) {
     font-size: 2rem;
   }
   
+  .hero-subtitle {
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+  }
+  
   .logo {
     width: 100px;
     height: 100px;
@@ -649,6 +712,53 @@ function toggleCollapse(listType, index) {
   .cta-button {
     padding: 10px 20px;
     font-size: 1rem;
+  }
+  
+  .section-title {
+    font-size: 1.5rem;
+    margin: 2rem 0 1rem;
+  }
+  
+  .section-title::after {
+    width: 60px;
+    height: 3px;
+  }
+  
+  .card h4 {
+    font-size: 1.1rem;
+  }
+  
+  .card p, .collapsible-content p {
+    font-size: 0.95rem;
+  }
+  
+  .collapsible-header h4 {
+    font-size: 1rem;
+  }
+  
+  .contract-address code {
+    font-size: 0.9rem;
+  }
+}
+
+/* For very small screens */
+@media (max-width: 320px) {
+  .hero-title {
+    font-size: 1.8rem;
+  }
+  
+  .hero-subtitle {
+    font-size: 1rem;
+  }
+  
+  .logo {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .cta-button {
+    padding: 8px 16px;
+    font-size: 0.9rem;
   }
 }
 
@@ -660,5 +770,22 @@ html {
 /* Add some padding to section targets to account for fixed navbar */
 section[id] {
   scroll-margin-top: 80px;
+}
+
+/* Add touch optimizations */
+@media (max-width: 768px) {
+  input, button, select, textarea {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+  }
+  
+  .collapsible-header {
+    min-height: 44px; /* Better touch target */
+  }
+  
+  .toggle-icon {
+    width: 24px;
+    height: 24px;
+    padding: 4px;
+  }
 }
 </style> 
