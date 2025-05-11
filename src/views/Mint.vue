@@ -12,41 +12,47 @@
     />
 
     <!-- Metrics Overview Section -->
-    <section class="metrics-overview" v-if="account">
+    <section class="metrics-overview">
       <div class="metrics-container">
         <div class="address-display">
           <span class="address-label">Connected:</span>
-          <span class="address-value">{{ formatAddress(account) }}</span>
+          <span class="address-value" v-if="account">{{ formatAddress(account) }}</span>
+          <span class="address-value" v-else>Not connected</span>
         </div>
         <div class="metrics-grid">
           <div class="metric-item">
             <span class="metric-title">Currently Mintable:</span>
-            <span class="metric-value">{{ formatAmountDisplay(currentlyMintableAmount) }}</span>
+            <span class="metric-value" v-if="account">{{ formatAmountDisplay(currentlyMintableAmount) }}</span>
+            <span class="metric-value" v-else>-</span>
         </div>
           <div class="metric-item">
             <span class="metric-title">Stakes Minted:</span>
-            <span class="metric-value">{{ mintedStakeCount }}/{{ stakeCount }}</span>
+            <span class="metric-value" v-if="account">{{ mintedStakeCount }}/{{ stakeCount }}</span>
+            <span class="metric-value" v-else>-</span>
         </div>
           <div class="metric-item">
             <span class="metric-title">Minted Amount:</span>
-            <span class="metric-value">{{ formatAmountDisplay(mintedAmount) }}</span>
+            <span class="metric-value" v-if="account">{{ formatAmountDisplay(mintedAmount) }}</span>
+            <span class="metric-value" v-else>-</span>
       </div>
           <div class="metric-item">
             <span class="metric-title">Locked Mintable:</span>
-            <span class="metric-value">{{ formatAmountDisplay(lockedMintableAmount) }}</span>
+            <span class="metric-value" v-if="account">{{ formatAmountDisplay(lockedMintableAmount) }}</span>
+            <span class="metric-value" v-else>-</span>
           </div>
           <div class="metric-item">
             <span class="metric-title">LHEX Balance:</span>
-            <span class="metric-value">{{ formatAmountDisplay(walletBalance) }}</span>
+            <span class="metric-value" v-if="account">{{ formatAmountDisplay(walletBalance) }}</span>
+            <span class="metric-value" v-else>-</span>
         </div>
       </div>
       </div>
     </section>
 
     <!-- Action buttons without title - compact version -->
-    <div class="compact-actions" v-if="account">
+    <div class="compact-actions">
       <div class="action-buttons">
-        <button class="action-button" @click="showPopup('transfer')">
+        <button class="action-button" @click="showPopup('transfer')" :disabled="!account">
           <span class="icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -55,7 +61,7 @@
           </span>
           Transfer
         </button>
-        <button class="action-button" @click="showPopup('mint')">
+        <button class="action-button" @click="showPopup('mint')" :disabled="!account">
           <span class="icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
@@ -63,7 +69,7 @@
           </span>
           Mint Manually
         </button>
-        <button class="action-button" @click="showPopup('signature')">
+        <button class="action-button" @click="showPopup('signature')" :disabled="!account">
           <span class="icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M20 11.08V8l-6-6H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h6"></path>
@@ -76,18 +82,19 @@
     </div>
 
     <!-- Address Search -->
-    <section class="address-search-section" v-if="account">
+    <section class="address-search-section">
       <div class="search-container">
         <input 
           type="text" 
           v-model="addressSearch" 
           placeholder="Search for an address (0x...)" 
           class="address-search-input"
+          :disabled="!account"
         />
         <button 
           @click="searchAddress" 
           class="search-button"
-          :disabled="!isValidAddress(addressSearch) && addressSearch !== ''"
+          :disabled="(!isValidAddress(addressSearch) && addressSearch !== '') || !account"
         >
           <span class="icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -231,8 +238,8 @@
                   >
                     Hearts
                   </button>
-                </div>
-              </div>
+            </div>
+            </div>
               <div class="amount-info">
                 <span v-if="signatureData.amountFormat === 'lhex'">
                   1 LHEX = 100,000,000 Hearts
@@ -240,7 +247,7 @@
                 <span v-else>
                   Hearts are the smallest unit (1 LHEX = 100,000,000 Hearts)
                 </span>
-              </div>
+            </div>
             </div>
             <button class="submit-button" @click="handleCreateSignature">Generate Signature</button>
             <div v-if="signatureOutput" class="signature-output">
@@ -373,7 +380,7 @@
     </section>
 
     <!-- Stakes Visualization Section -->
-    <section class="stakes-chart-section" v-if="stakes.length > 0">
+    <section class="stakes-chart-section">
       <h2 class="section-title">Stakes Visualization</h2>
       
       <div class="chart-controls">
@@ -441,7 +448,10 @@
       
       <div class="chart-container" ref="chartContainer">
         <!-- Bar chart will be rendered here by D3.js -->
-        <div class="chart-empty" v-if="stakes.length === 0">No stakes data available for visualization</div>
+        <div class="chart-empty" v-if="!account || stakes.length === 0">
+          <div v-if="!account">Connect your wallet to view stakes visualization</div>
+          <div v-else>No stakes data available for visualization</div>
+        </div>
       </div>
     </section>
 
@@ -2018,6 +2028,7 @@ function convertToLhex(amount, format) {
 /* Add padding-top to account for the fixed navbar */
 .mint-container {
   padding-top: 70px; /* Adjust to match navbar height */
+  overflow-x: hidden; /* Prevent horizontal scrolling */
 }
 
 /* Compact actions section (new) */
@@ -2047,9 +2058,19 @@ function convertToLhex(amount, format) {
   transition: all 0.3s ease;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   font-size: 0.9rem;
+  width: 100%;
+  justify-content: center;
+  max-width: 200px;
 }
 
-.compact-actions .action-button:hover {
+.compact-actions .action-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.compact-actions .action-button:hover:not(:disabled) {
   transform: translateY(-2px);
   background-color: rgba(0, 0, 139, 0.9);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
@@ -2081,6 +2102,8 @@ function convertToLhex(amount, format) {
   align-items: center;
   margin-bottom: 1rem;
   font-size: 1.1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .address-label {
@@ -2094,11 +2117,13 @@ function convertToLhex(amount, format) {
   padding: 0.3rem 0.7rem;
   border-radius: 4px;
   font-family: monospace;
+  word-break: break-all;
+  max-width: 100%;
 }
 
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 1rem;
 }
 
@@ -2109,6 +2134,7 @@ function convertToLhex(amount, format) {
   display: flex;
   flex-direction: column;
   align-items: center;
+  text-align: center;
 }
 
 .metric-title {
@@ -2118,9 +2144,10 @@ function convertToLhex(amount, format) {
 }
 
 .metric-value {
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   font-weight: bold;
   color: #f39c12;
+  word-break: break-word;
 }
 
 /* Address Search Section */
@@ -2166,9 +2193,12 @@ function convertToLhex(amount, format) {
   gap: 0.5rem;
   transition: all 0.3s ease;
   font-weight: bold;
+  min-width: 100px;
+  justify-content: center;
+  min-height: 44px; /* Better for touch targets */
 }
 
-.search-button:hover, .back-button:hover {
+.search-button:hover:not(:disabled), .back-button:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
@@ -2197,6 +2227,7 @@ function convertToLhex(amount, format) {
   margin-bottom: 1rem;
   flex-wrap: wrap;
   gap: 0.5rem;
+  width: 100%;
 }
 
 .viewing-label {
@@ -2206,6 +2237,7 @@ function convertToLhex(amount, format) {
 .viewing-address {
   font-family: monospace;
   font-weight: bold;
+  word-break: break-all;
 }
 
 .read-only-badge {
@@ -2215,7 +2247,6 @@ function convertToLhex(amount, format) {
   border-radius: 3px;
   font-size: 0.7rem;
   font-weight: bold;
-  margin-left: 0.5rem;
 }
 
 /* Popup styles */
@@ -2240,8 +2271,10 @@ function convertToLhex(amount, format) {
   border-radius: 10px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   max-width: 600px;
-  width: 100%;
+  width: calc(100% - 2rem);
   animation: slideDown 0.3s ease-out;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
 @keyframes slideDown {
@@ -2269,6 +2302,7 @@ function convertToLhex(amount, format) {
   font-size: 1.8rem;
   cursor: pointer;
   transition: color 0.2s;
+  padding: 0.5rem; /* Larger touch target */
 }
 
 .close-btn:hover {
@@ -2299,6 +2333,8 @@ function convertToLhex(amount, format) {
   border-radius: 5px;
   color: white;
   font-family: monospace;
+  width: 100%;
+  font-size: 16px; /* Prevents iOS zoom on focus */
 }
 
 .form-group input:focus, .form-group textarea:focus {
@@ -2323,6 +2359,7 @@ function convertToLhex(amount, format) {
   font-weight: bold;
   transition: all 0.3s ease;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  min-height: 50px; /* Better for touch targets */
 }
 
 .submit-button:hover {
@@ -2353,6 +2390,7 @@ function convertToLhex(amount, format) {
   word-break: break-all;
   max-height: 150px;
   overflow-y: auto;
+  font-size: 0.9rem;
 }
 
 /* Stakes Section */
@@ -2382,6 +2420,8 @@ function convertToLhex(amount, format) {
   color: white;
   border-radius: 5px;
   cursor: pointer;
+  height: 44px; /* Better for touch targets */
+  font-size: 16px;
 }
 
 .status-filter:focus {
@@ -2400,6 +2440,7 @@ function convertToLhex(amount, format) {
   overflow-x: auto;
   max-height: 500px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* Smoother scrolling on iOS */
 }
 
 .stakes-table {
@@ -2418,12 +2459,15 @@ function convertToLhex(amount, format) {
   color: #f39c12;
   font-weight: bold;
   font-size: 1rem;
+  white-space: nowrap;
 }
 
 .stakes-table td {
   padding: 1rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   transition: background-color 0.2s;
+  word-break: break-word;
+  max-width: 150px; /* Limit cell width */
 }
 
 .stakes-table tbody tr:hover td {
@@ -2489,6 +2533,8 @@ function convertToLhex(amount, format) {
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.3s ease;
+  min-height: 40px;
+  min-width: 80px;
 }
 
 .mint-button:hover {
@@ -2504,6 +2550,8 @@ function convertToLhex(amount, format) {
   padding: 0.5rem 1rem;
   border-radius: 4px;
   opacity: 0.7;
+  min-height: 40px;
+  min-width: 80px;
 }
 
 .expired-button {
@@ -2513,6 +2561,8 @@ function convertToLhex(amount, format) {
   padding: 0.5rem 1rem;
   border-radius: 4px;
   opacity: 0.7;
+  min-height: 40px;
+  min-width: 80px;
 }
 
 .stakes-table .empty-row td {
@@ -2541,6 +2591,7 @@ function convertToLhex(amount, format) {
   border-radius: 30px;
   overflow: hidden;
   padding: 5px;
+  flex-wrap: wrap;
 }
 
 .chart-view-toggle button {
@@ -2550,6 +2601,7 @@ function convertToLhex(amount, format) {
   color: white;
   cursor: pointer;
   transition: all 0.3s ease;
+  min-height: 40px;
 }
 
 .chart-view-toggle button.active {
@@ -2567,17 +2619,22 @@ function convertToLhex(amount, format) {
   border-radius: 30px;
   gap: 0.5rem;
   position: relative;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .date-filter-inputs {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .date-filter-field {
   display: flex;
   align-items: center;
   gap: 0.3rem;
+  flex-wrap: wrap;
 }
 
 .date-filter-field label {
@@ -2593,6 +2650,7 @@ function convertToLhex(amount, format) {
   padding: 0.3rem;
   border-radius: 4px;
   font-size: 0.9rem;
+  min-height: 38px;
 }
 
 .reset-filter {
@@ -2604,6 +2662,7 @@ function convertToLhex(amount, format) {
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 0.9rem;
+  min-height: 38px;
 }
 
 .reset-filter:hover {
@@ -2676,17 +2735,20 @@ function convertToLhex(amount, format) {
   background-color: rgba(0, 0, 139, 0.7);
   border-radius: 8px;
   padding: 1.5rem;
-  min-height: 400px;
+  min-height: 300px;
   display: flex;
   justify-content: center;
   align-items: center;
   position: relative;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
 }
 
 .chart-empty {
   color: rgba(255, 255, 255, 0.5);
   font-style: italic;
+  text-align: center;
+  padding: 2rem 1rem;
 }
 
 .chart-tooltip {
@@ -2696,6 +2758,8 @@ function convertToLhex(amount, format) {
   border-radius: 5px;
   pointer-events: none;
   z-index: 1000;
+  max-width: 90%;
+  word-wrap: break-word;
 }
 
 /* Footer */
@@ -2713,6 +2777,7 @@ function convertToLhex(amount, format) {
   flex-wrap: wrap;
   gap: 1.5rem;
   margin-bottom: 1.5rem;
+  padding: 0 1rem;
 }
 
 .footer-links a {
@@ -2723,6 +2788,8 @@ function convertToLhex(amount, format) {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  padding: 0.5rem;
+  min-height: 44px; /* Better touch target */
 }
 
 .footer-links a:hover {
@@ -2743,26 +2810,87 @@ function convertToLhex(amount, format) {
 
 /* Responsive design */
 @media (max-width: 768px) {
+  .metrics-overview {
+    margin: 0.5rem;
+    padding: 1rem;
+  }
+  
   .metrics-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  
+  .compact-actions {
+    padding: 0.5rem;
   }
   
   .action-buttons {
-    flex-direction: column;
-    align-items: center;
+    gap: 0.5rem;
   }
   
-  .action-button {
-    width: 100%;
-    max-width: 280px;
+  .compact-actions .action-button {
+    max-width: 100%;
+    flex: 1;
+    min-width: 120px;
+    padding: 0.8rem 0.5rem;
+    font-size: 0.8rem;
   }
   
   .search-container {
     flex-direction: column;
+    gap: 0.5rem;
   }
   
   .address-search-input {
     width: 100%;
+  }
+  
+  .search-button, .back-button {
+    width: 100%;
+  }
+  
+  .section-title {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .popup-content {
+    padding: 1rem;
+    margin: 5vh auto;
+    width: calc(100% - 1rem);
+  }
+  
+  .chart-view-toggle button {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+  
+  .date-filter {
+    padding: 0.5rem;
+    width: 100%;
+  }
+  
+  .date-filter-field {
+    width: 100%;
+  }
+  
+  .date-filter-field input {
+    width: 100%;
+  }
+  
+  .date-filter-inputs {
+    width: 100%;
+  }
+  
+  .reset-filter {
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+  
+  /* Adjust the chart container for mobile */
+  .chart-container {
+    padding: 1rem 0.5rem;
+    min-height: 250px;
   }
 }
 
@@ -2771,8 +2899,34 @@ function convertToLhex(amount, format) {
     grid-template-columns: 1fr;
   }
   
-  .popup-content {
-    padding: 1rem;
+  .metric-item {
+    padding: 0.8rem;
+  }
+  
+  .metric-title {
+    font-size: 0.8rem;
+  }
+  
+  .metric-value {
+    font-size: 1.1rem;
+  }
+  
+  .popup-header h3 {
+    font-size: 1.2rem;
+  }
+  
+  .form-group label {
+    font-size: 0.9rem;
+  }
+  
+  .stakes-table th {
+    padding: 0.8rem 0.5rem;
+    font-size: 0.8rem;
+  }
+  
+  .stakes-table td {
+    padding: 0.8rem 0.5rem;
+    font-size: 0.8rem;
   }
 }
 
@@ -2781,9 +2935,10 @@ function convertToLhex(amount, format) {
   justify-content: space-between;
   gap: 1rem;
   margin-top: 1rem;
-  }
+  flex-wrap: wrap;
+}
   
-  .action-button {
+.action-button {
   padding: 0.8rem 1.5rem;
   background-color: rgba(0, 0, 139, 0.6);
   color: white;
@@ -2793,6 +2948,7 @@ function convertToLhex(amount, format) {
   transition: all 0.3s ease;
   font-weight: bold;
   flex-grow: 1;
+  min-height: 44px;
 }
 
 .action-button:hover {
@@ -2816,6 +2972,7 @@ function convertToLhex(amount, format) {
   transition: all 0.3s ease;
   font-weight: bold;
   width: 100%;
+  min-height: 44px;
 }
 
 .copy-button:hover {
@@ -2845,7 +3002,7 @@ function convertToLhex(amount, format) {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 200px;
+  min-width: 80px;
 }
 
 .mint-button:disabled {
@@ -2857,6 +3014,7 @@ function convertToLhex(amount, format) {
   display: flex;
   gap: 1rem;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .amount-format-toggle {
@@ -2875,8 +3033,9 @@ function convertToLhex(amount, format) {
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 0.9rem;
+  min-height: 38px;
 }
-
+  
 .amount-format-toggle button.active {
   background-color: #f39c12;
   border-radius: 20px;
@@ -2888,5 +3047,43 @@ function convertToLhex(amount, format) {
   font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.7);
   font-style: italic;
+  word-break: break-word;
+}
+
+/* Add touch optimizations */
+@media (max-width: 768px) {
+  input, button, select, textarea {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+  }
+  
+  /* Allow scrolling for long text in popups on mobile */
+  .popup-content {
+    overscroll-behavior: contain;
+  }
+  
+  /* Add more space for small viewports */
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .form-actions button {
+    width: 100%;
+  }
+  
+  /* Fix amount input container on mobile */
+  .amount-input-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .amount-input-container input {
+    width: 100%;
+  }
+  
+  /* Make popups take more screen space on mobile */
+  .popup-content {
+    max-height: 85vh;
+    margin: 5vh auto;
+  }
 }
 </style> 
