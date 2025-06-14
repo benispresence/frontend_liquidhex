@@ -1,0 +1,56 @@
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Package manager lockfiles
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build outputs
+dist/
+build/
+out/
+.output/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Cache and temp directories
+.cache/
+.temp/
+.tmp/
+.nuxt/
+.vite/
+.vitepress/
+.parcel-cache/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Coverage and test reports
+coverage/
+.nyc_output/
+.jest-coverage/ 

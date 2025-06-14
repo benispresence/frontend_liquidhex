@@ -2,79 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ERC20 Token Interface</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="icon" type="image/x-icon" href="logo.png">
+    <meta http-equiv="refresh" content="0;url=/" />
+    <title>Redirecting to LiquidHEX</title>
 </head>
 <body>
-    <div class="header">
-        <img src="logo.png" alt="Liquid HEX Logo" id="logo">
-        <button id="connectWallet">Connect MetaMask</button>
-        <div id="connectionStatus">Connected: no connection</div>
-        <button id="goToLanding">Back to Info</button>
-    </div>
-    <div class="action-buttons">
-        <button id="transferBtn">Transfer</button>
-        <button id="mintManuallyBtn">Mint Manually</button>
-        <button id="createSignatureBtn">Create Signature</button>
-    </div>
-    <div id="popupContainer" class="popup-container">
-        <div id="popupContent" class="popup-content">
-            <span class="close-btn">&times;</span>
-            <div id="popupBody"></div>
-        </div>
-    </div>
-    <div class="container">
-        <div class="inputs">
-            <h3>Stakes</h3>
-            <table id="stakesTable">
-                <thead>
-                    <tr>
-                        <th>Stake ID</th>
-                        <th>Address</th>
-                        <th>Amount</th>
-                        <th>Start Date</th>
-                        <th>End Date</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Table body will be populated dynamically -->
-                </tbody>
-            </table>
-        </div>
-    </div>
-    <script src="js/web3.min.js"></script>
-    <script src="js/ethers.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-    <script src="app.js"></script>
+    <p>This page has been moved. If you are not redirected automatically, <a href="/">click here</a>.</p>
     <script>
-        document.getElementById('goToLanding').addEventListener('click', function() {
-            window.location.href = 'index.html';
-        });
-
-        document.addEventListener('DOMContentLoaded', function() {
-            function checkMintedRows() {
-                const mintedRows = document.querySelectorAll('#stakesTable tbody tr.minted');
-                console.log('Minted rows:', mintedRows.length);
-                mintedRows.forEach(row => {
-                    console.log('Minted row style:', window.getComputedStyle(row).backgroundColor);
-                    // Force a repaint of the row
-                    row.style.display = 'none';
-                    void row.offsetHeight;
-                    row.style.display = '';
-                });
-
-                if (mintedRows.length === 0) {
-                    // If no minted rows found, check again after 1 second
-                    setTimeout(checkMintedRows, 1000);
-                }
-            }
-
-            // Start checking for minted rows after a short delay
-            setTimeout(checkMintedRows, 1000);
-        });
+        window.location.href = "/";
     </script>
 </body>
 </html>

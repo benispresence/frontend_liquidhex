@@ -1,0 +1,791 @@
+<template>
+  <div class="home-container">
+    <Navbar />
+
+    <header class="hero">
+      <div class="hero-content">
+        <img src="/logo.png" alt="LiquidHEX Logo" class="logo">
+        <h1 class="hero-title">LiquidHEX</h1>
+        <h2 class="hero-subtitle">An eHEX Fork without Sellers</h2>
+        <router-link to="/mint" class="cta-button">Mint LiquidHEX</router-link>
+      </div>
+    </header>
+
+    <section class="contract-info">
+      <div class="info-box">
+        <p>Verify the contract address by comparing it here, GitHub, and Telegram to ensure you are interacting with the right contract.</p>
+        <div class="contract-address">
+          <span>Contract Address:</span> 
+          <code>0xa73f450E3f17468A64BFdD222b099857Db76634d</code>
+        </div>
+      </div>
+    </section>
+
+    <section id="benefits" class="benefits-section">
+      <h3 class="section-title">Benefits</h3>
+      <div class="card-grid">
+        <div class="card">
+          <h4>What is LiquidHEX?</h4>
+          <p>LiquidHEX is a fork of eHEX mintable by the strongest HEX stakers on Pulsechain.</p>
+        </div>
+        <div class="card">
+          <h4>What is the Purpose of LiquidHEX?</h4>
+          <p>LiquidHEX was designed to demonstrate the strength of HEX stakers through three use cases: Data Production, Education, and scarce Store of Value.</p>
+        </div>
+        <div class="card">
+          <h4>Data production</h4>
+          <p>It can predict if the strongest stakers will sell or hold their expiring stakes, as you can mint LHEX (LiquidHEX) one year before your original HEX stake matures.</p>
+        </div>
+        <div class="card">
+          <h4>Education</h4>
+          <p>It helps Hexicans learn about Merkle tree proofs and verify all aspects of the project, including how to run truly decentralized DEFI frontends. Successful users are rewarded with their LHEX tokens.</p>
+        </div>
+        <div class="card">
+          <h4>Store of Value</h4>
+          <p>It is capped at a total supply of 300 billion, released over 15 years as LHEX stakes expire. Due to its market value and scarcity, it is always sensible to mint LHEX.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="how-it-works" class="info-section">
+      <h3 class="section-title">How it works</h3>
+      <div class="collapsible-list">
+        <div v-for="(item, index) in howItWorksList" :key="`how-${index}`" class="collapsible-item">
+          <div class="collapsible-header" @click="toggleCollapse('how', index)">
+            <h4>{{ item.title }}</h4>
+            <span class="toggle-icon" :class="{ 'open': item.isOpen }">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </span>
+          </div>
+          <div class="collapsible-content" :class="{ 'open': item.isOpen }">
+            <p>{{ item.content }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="audit" class="info-section">
+      <h3 class="section-title">Audit & Verification</h3>
+      <div class="collapsible-list">
+        <div v-for="(item, index) in auditList" :key="`audit-${index}`" class="collapsible-item">
+          <div class="collapsible-header" @click="toggleCollapse('audit', index)">
+            <h4>{{ item.title }}</h4>
+            <span class="toggle-icon" :class="{ 'open': item.isOpen }">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </span>
+          </div>
+          <div class="collapsible-content" :class="{ 'open': item.isOpen }">
+            <p>{{ item.content }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq" class="info-section">
+      <h3 class="section-title">FAQ</h3>
+      <div class="collapsible-list">
+        <div v-for="(item, index) in faqList" :key="`faq-${index}`" class="collapsible-item">
+          <div class="collapsible-header" @click="toggleCollapse('faq', index)">
+            <h4>{{ item.title }}</h4>
+            <span class="toggle-icon" :class="{ 'open': item.isOpen }">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </span>
+          </div>
+          <div class="collapsible-content" :class="{ 'open': item.isOpen }">
+            <p v-html="item.content"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="https://t.me/liquidhex" target="_blank">
+          <span class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+            </svg>
+          </span>
+          Group Chat
+        </a>
+        <a href="https://github.com/benispresence/liquidhex" target="_blank">
+          <span class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 12h-6l-2 3h-4l-2-3H2"></path>
+              <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>
+            </svg>
+          </span>
+          Smart Contract Source
+        </a>
+        <a href="https://github.com/benispresence/frontend_liquidhex" target="_blank">
+          <span class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+          </span>
+          Frontend Source
+        </a>
+        <router-link to="/mint">
+          <span class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+            </svg>
+          </span>
+          Mint LiquidHEX
+        </router-link>
+      </div>
+      <div class="copyright">
+        &copy; {{ new Date().getFullYear() }} LiquidHEX
+      </div>
+    </footer>
+  </div>
+</template>
+
+<script setup>
+import { reactive, ref, onMounted, onBeforeUnmount } from 'vue'
+import Navbar from '../components/Navbar.vue';
+
+// Mobile menu state
+const menuOpen = ref(false);
+
+// Store event listeners for cleanup
+const eventListeners = ref([]);
+
+// Toggle mobile menu
+function toggleMenu() {
+  menuOpen.value = !menuOpen.value;
+  
+  // Prevent scrolling when menu is open
+  if (menuOpen.value) {
+    document.body.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = '';
+  }
+}
+
+// Close mobile menu
+function closeMenu() {
+  menuOpen.value = false;
+  document.body.style.overflow = '';
+}
+
+// Add smooth scroll functionality
+function scrollToSection(event, sectionId) {
+  event.preventDefault();
+  const section = document.getElementById(sectionId);
+  if (section) {
+    const navbarHeight = 70; // Adjust based on your navbar height
+    const topPosition = section.getBoundingClientRect().top + window.pageYOffset - navbarHeight;
+    
+    window.scrollTo({
+      top: topPosition,
+      behavior: 'smooth'
+    });
+    
+    closeMenu();
+  }
+}
+
+// Initialize smooth scrolling for all section links
+onMounted(() => {
+  const navLinks = document.querySelectorAll('.navbar-links a[href^="#"]');
+  
+  navLinks.forEach(link => {
+    const clickHandler = (e) => {
+      const sectionId = link.getAttribute('href').substring(1);
+      scrollToSection(e, sectionId);
+    };
+    
+    link.addEventListener('click', clickHandler);
+    
+    // Store for cleanup
+    eventListeners.value.push({
+      element: link,
+      type: 'click',
+      handler: clickHandler
+    });
+  });
+});
+
+// Clean up event listeners when component is unmounted
+onBeforeUnmount(() => {
+  eventListeners.value.forEach(({ element, type, handler }) => {
+    element.removeEventListener(type, handler);
+  });
+});
+
+// Collapsible sections data
+const howItWorksList = reactive([
+  {
+    title: "What stakes are eligible to mint?",
+    content: "Only native active eHEX stakes that are staked longer than 720 days are eligible to mint that were staked before the fork. The Fork-Snapshot happened at Block Number 19947139 (Ethereum). Stakers who have emergency end-staked or net sold more than $50K worth of HEX in USDC pools are excluded from minting. Their stakes were not forked over.",
+    isOpen: false
+  },
+  {
+    title: "Merkle tree proofs",
+    content: "A Merkle tree proof in a crypto mintable token scenario uses a hash-based tree structure to verify a participant's inclusion. Each participant's data is hashed into leaf nodes, which are combined to form a single root hash. A Merkle proof provides the necessary hashes to verify a specific participant's data ( in our case the specified mintable amounts) by recomputing the root hash. This method ensures efficient and secure verification of mintable LHEX eligibility.",
+    isOpen: false
+  },
+  {
+    title: "Minting Period",
+    content: "Minting can only occur within the period starting one year before your original eHEX stake ends and one year after it ends. For bleeding stakes, you can mint until one year has passed since launch without any penalties.",
+    isOpen: false
+  }
+]);
+
+const auditList = reactive([
+  {
+    title: "Is the LiquidHEX Contract Address (0xa73…34d) verified?",
+    content: "Yes, the contract was verified via Sourcify and it's viewable on the Pulsechain Blockexplorer.",
+    isOpen: false
+  },
+  {
+    title: "Is the LiquidHEX contract audited?",
+    content: "Only 61 lines of code are not audited; the rest are audited as they are OpenZeppelin contracts. The 61 lines of code can be AI-audited with your preferred LLM because it is a simple contract. The complexity of LiquidHEX happened in calculating the eligibility and predicted payouts for each individual stake. This calculation was made outside of the Smart Contract keeping the Contract simple. The calculations can be verified by the root hash.",
+    isOpen: false
+  },
+  {
+    title: "What if I am Concerned About Interacting with the LiquidHEX Contract Using My Main Account?",
+    content: "A method to mint LHEX to a burner address is available via a signature for those concerned about security.",
+    isOpen: false
+  }
+]);
+
+const faqList = reactive([
+  {
+    title: "Where is the Frontend?",
+    content: "The frontend is available as a downloadable DEFI frontend via the official Github repository.",
+    isOpen: false
+  },
+  {
+    title: "Common Errors in Failed Mint LHEX Transactions",
+    content: "\"Invalid Merkle proof\": You are either not the eligible address or the parameters are incorrect/formatted incorrectly. Refer to the example in the README file on GitHub.<br>\"ID already claimed\": LHEX was already minted for that stake ID.<br>\"Not within the minting window\": It is not yet time to mint your LHEX. Check the stake's minting start and end date.",
+    isOpen: false
+  },
+  {
+    title: "Why is There a Huge Sell Wall?",
+    content: "The liquidity address received 30% of the total supply as announced, with 96% locked in a staking ladder for the next 15 years. This liquidity is not for selling but to provide efficient liquidity within the historical price ranges of HEX. The term \"sell wall\" is misleading as it does not suppress upward price movement. Concerns about the liquidity address pulling liquidity and causing a price fall are speculative and have not occurred. Early adopters take risks for great opportunities, and the majority of the liquidity addresses supply is locked, unlike other tokens. For example note that OA owns 95% of the circulating supply of eHEX and pHEX, and SA owns more than 50% of HDRN. The HEX and HDRN supply of those addresses are not even locked throughout a 15-year period.",
+    isOpen: false
+  },
+  {
+    title: "Why Would Anybody Buy?",
+    content: "Users have already bought into LiquidHEX due to its potential of scooping up major supply at low prices. LiquidHEX is scarce!",
+    isOpen: false
+  }
+]);
+
+// Function to toggle collapse state
+function toggleCollapse(listType, index) {
+  let list;
+  switch (listType) {
+    case 'how':
+      list = howItWorksList;
+      break;
+    case 'audit':
+      list = auditList;
+      break;
+    case 'faq':
+      list = faqList;
+      break;
+    default:
+      return;
+  }
+  
+  list[index].isOpen = !list[index].isOpen;
+}
+</script>
+
+<style scoped>
+/* Remove navbar styles that were moved to the Navbar component */
+/* ... */
+
+/* Keep all other styles */
+.home-container {
+  padding-top: 70px; /* Adjust to match navbar height */
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+}
+
+.hero {
+  height: 80vh;
+  min-height: 500px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  padding: 1rem;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 139, 0.7) 0%, rgba(0, 0, 139, 0.3) 100%);
+  z-index: -1;
+}
+
+.hero-content {
+  padding: 2rem;
+  border-radius: 10px;
+  background-color: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(5px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  animation: fadeIn 1s ease-out;
+  max-width: 600px;
+  width: calc(100% - 2rem);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.logo {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  margin-bottom: 1rem;
+  filter: drop-shadow(0 0 10px rgba(255, 165, 0, 0.5));
+  animation: pulse 5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.hero-title {
+  font-size: 3.5rem;
+  margin: 0;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  word-wrap: break-word;
+  hyphens: auto;
+}
+
+.hero-subtitle {
+  font-size: 1.5rem;
+  margin: 0 0 2rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 300;
+  word-wrap: break-word;
+}
+
+.cta-button {
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  color: #fff;
+  padding: 12px 28px;
+  font-size: 1.2rem;
+  text-decoration: none;
+  border-radius: 30px;
+  display: inline-block;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  box-shadow: 0 4px 15px rgba(243, 156, 18, 0.5);
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.cta-button:hover {
+  background: linear-gradient(135deg, #e67e22, #f39c12);
+  transform: translateY(-2px);
+  box-shadow: 0 7px 20px rgba(243, 156, 18, 0.6);
+}
+
+.contract-info {
+  margin: 2rem 0;
+  text-align: center;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.info-box {
+  background-color: rgba(57, 52, 36, 0.7);
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  max-width: 800px;
+  margin: 0 auto;
+  width: calc(100% - 2rem);
+}
+
+.contract-address {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: bold;
+}
+
+.contract-address code {
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  font-family: monospace;
+  font-size: 1rem;
+  user-select: all;
+  word-break: break-all;
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+
+.section-title {
+  font-size: 2.2rem;
+  margin: 2.5rem 0 1.5rem;
+  text-align: center;
+  color: #fff;
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  word-wrap: break-word;
+}
+
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 4px;
+  background: linear-gradient(90deg, rgba(243, 156, 18, 0.8), rgba(255, 165, 0, 0.4));
+  border-radius: 2px;
+}
+
+.benefits-section, .info-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 3rem;
+  padding: 0 1.5rem;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.card {
+  background-color: rgba(57, 52, 36, 0.8);
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+}
+
+.card h4 {
+  color: #f39c12;
+  margin-top: 0;
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid rgba(243, 156, 18, 0.3);
+  padding-bottom: 0.5rem;
+  word-wrap: break-word;
+}
+
+.card p {
+  font-size: 1rem;
+  line-height: 1.5;
+  margin: 0;
+  word-wrap: break-word;
+}
+
+.collapsible-list {
+  width: 100%;
+}
+
+.collapsible-item {
+  margin-bottom: 1rem;
+  background-color: rgba(57, 52, 36, 0.8);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: box-shadow 0.3s ease;
+}
+
+.collapsible-item:hover {
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.collapsible-header {
+  background-color: rgba(57, 52, 36, 1);
+  color: #f39c12;
+  margin: 0;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.collapsible-header h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.toggle-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+
+.toggle-icon.open {
+  transform: rotate(45deg);
+}
+
+.collapsible-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-in-out;
+}
+
+.collapsible-content.open {
+  max-height: 1000px; /* Arbitrary large value */
+}
+
+.collapsible-content p {
+  padding: 1rem 1.5rem;
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.footer {
+  background: rgba(255, 165, 0, 0.9);
+  padding: 2rem 0;
+  text-align: center;
+  margin-top: 4rem;
+  border-radius: 10px 10px 0 0;
+  width: 100%;
+}
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding: 0 1rem;
+}
+
+.footer-links a {
+  text-decoration: none;
+  color: #fff;
+  font-weight: bold;
+  transition: transform 0.3s ease, color 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  min-height: 44px; /* Better touch target */
+}
+
+.footer-links a:hover {
+  transform: translateY(-3px);
+  color: rgba(0, 0, 139, 0.8);
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.copyright {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+}
+
+/* Responsive design */
+@media (max-width: 992px) {
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .hero-title {
+    font-size: 3rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .benefits-section, .info-section {
+    padding: 0 1rem;
+  }
+  
+  .hero-title {
+    font-size: 2.5rem;
+  }
+  
+  .hero-subtitle {
+    font-size: 1.3rem;
+  }
+  
+  .section-title {
+    font-size: 1.8rem;
+  }
+  
+  .collapsible-header {
+    padding: 1rem;
+  }
+  
+  .collapsible-content p {
+    padding: 1rem;
+  }
+  
+  .hero-content {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-content {
+    padding: 1.5rem;
+  }
+  
+  .hero-title {
+    font-size: 2rem;
+  }
+  
+  .hero-subtitle {
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .logo {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .cta-button {
+    padding: 10px 20px;
+    font-size: 1rem;
+  }
+  
+  .section-title {
+    font-size: 1.5rem;
+    margin: 2rem 0 1rem;
+  }
+  
+  .section-title::after {
+    width: 60px;
+    height: 3px;
+  }
+  
+  .card h4 {
+    font-size: 1.1rem;
+  }
+  
+  .card p, .collapsible-content p {
+    font-size: 0.95rem;
+  }
+  
+  .collapsible-header h4 {
+    font-size: 1rem;
+  }
+  
+  .contract-address code {
+    font-size: 0.9rem;
+  }
+}
+
+/* For very small screens */
+@media (max-width: 320px) {
+  .hero-title {
+    font-size: 1.8rem;
+  }
+  
+  .hero-subtitle {
+    font-size: 1rem;
+  }
+  
+  .logo {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .cta-button {
+    padding: 8px 16px;
+    font-size: 0.9rem;
+  }
+}
+
+/* Add smooth scrolling behavior to the document */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Add some padding to section targets to account for fixed navbar */
+section[id] {
+  scroll-margin-top: 80px;
+}
+
+/* Add touch optimizations */
+@media (max-width: 768px) {
+  input, button, select, textarea {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+  }
+  
+  .collapsible-header {
+    min-height: 44px; /* Better touch target */
+  }
+  
+  .toggle-icon {
+    width: 24px;
+    height: 24px;
+    padding: 4px;
+  }
+}
+</style> 
