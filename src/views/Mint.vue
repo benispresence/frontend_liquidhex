@@ -583,6 +583,43 @@ let tokenContract
 // Supported chain IDs (PulseChain mainnet and testnet)
 const SUPPORTED_CHAINS = [369, 943] // 369 is PulseChain mainnet, 943 is testnet
 
+// Chain information mapping
+const CHAIN_INFO = {
+  369: { name: 'PulseChain Mainnet', symbol: 'PLS' },
+  943: { name: 'PulseChain Testnet', symbol: 'tPLS' },
+  1: { name: 'Ethereum Mainnet', symbol: 'ETH' },
+  11155111: { name: 'Sepolia Testnet', symbol: 'SepoliaETH' },
+  137: { name: 'Polygon', symbol: 'MATIC' },
+  56: { name: 'BSC', symbol: 'BNB' }
+}
+
+// Helper function to get chain info
+function getChainInfo(chainId) {
+  return CHAIN_INFO[chainId] || { name: `Unknown Chain ${chainId}`, symbol: 'Unknown' }
+}
+
+// Helper function to check current chain status
+async function getCurrentChainStatus() {
+  if (!window.ethereum) return { connected: false, error: 'MetaMask not detected' }
+  
+  try {
+    const hexChainId = await window.ethereum.request({ method: 'eth_chainId' })
+    const chainId = parseInt(hexChainId, 16)
+    const chainInfo = getChainInfo(chainId)
+    const isSupported = SUPPORTED_CHAINS.includes(chainId)
+    
+    return {
+      connected: true,
+      chainId,
+      chainInfo,
+      isSupported,
+      hexChainId
+    }
+  } catch (error) {
+    return { connected: false, error: error.message }
+  }
+}
+
 // Check if an address is valid
 function isValidAddress(address) {
   return ethers.isAddress(address)
@@ -638,20 +675,74 @@ async function connectToMetaMask() {
       try {
         // Request account access
         console.log("Requesting account access...")
-      await window.ethereum.request({ method: 'eth_requestAccounts' })
+        await window.ethereum.request({ method: 'eth_requestAccounts' })
         
         // Initialize provider
         console.log("Initializing ethers provider...")
         provider = new ethers.BrowserProvider(window.ethereum)
         
-        // Get network information
-        const network = await provider.getNetwork()
-        console.log("Connected to network:", network.name, "- Chain ID:", network.chainId)
+        // Get network information with better error handling
+        let network
+        let chainId
+        try {
+          network = await provider.getNetwork()
+          chainId = Number(network.chainId)
+          console.log("Connected to network:", network.name || 'Unknown', "- Chain ID:", chainId)
+        } catch (networkError) {
+          console.warn("Failed to get network from provider, trying direct RPC call:", networkError)
+          // Fallback: get chainId directly from ethereum
+          const hexChainId = await window.ethereum.request({ method: 'eth_chainId' })
+          chainId = parseInt(hexChainId, 16)
+          console.log("Got chain ID from direct RPC call:", chainId)
+          network = { chainId: BigInt(chainId), name: `Chain ${chainId}` }
+        }
         
-        // Check if on the correct network
-        if (!SUPPORTED_CHAINS.includes(Number(network.chainId))) {
-          console.error(`Wrong network! Connected to chain ID ${network.chainId}, but this app requires PulseChain (Chain ID 369 or 943)`)
-          alert(`Please switch to PulseChain in your MetaMask wallet. Current chain: ${network.name} (${network.chainId}). Required: PulseChain (369 or 943).`)
+        // Check if on the correct network with more robust validation
+        console.log("Checking chain ID:", chainId, "against supported chains:", SUPPORTED_CHAINS)
+        if (!SUPPORTED_CHAINS.includes(chainId)) {
+          const currentChainInfo = getChainInfo(chainId)
+          console.error(`Wrong network! Connected to chain ID ${chainId} (${currentChainInfo.name}), but this app requires PulseChain (Chain ID 369 or 943)`)
+          
+          // Try to switch to PulseChain mainnet automatically
+          try {
+            console.log("Attempting to switch to PulseChain automatically...")
+            await window.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: '0x171' }], // 369 in hex
+            })
+            
+            // If successful, retry connection
+            console.log("Successfully switched to PulseChain, retrying connection...")
+            return await connectToMetaMask()
+          } catch (switchError) {
+            console.log("Auto-switch failed, user needs to switch manually:", switchError)
+            
+            // If switching fails, try to add the network
+            if (switchError.code === 4902) {
+              try {
+                await window.ethereum.request({
+                  method: 'wallet_addEthereumChain',
+                  params: [{
+                    chainId: '0x171', // 369 in hex
+                    chainName: 'PulseChain',
+                    nativeCurrency: {
+                      name: 'Pulse',
+                      symbol: 'PLS',
+                      decimals: 18,
+                    },
+                    rpcUrls: ['https://rpc.pulsechain.com'],
+                    blockExplorerUrls: ['https://scan.pulsechain.com'],
+                  }],
+                })
+                console.log("PulseChain network added, retrying connection...")
+                return await connectToMetaMask()
+              } catch (addError) {
+                console.error("Failed to add PulseChain network:", addError)
+              }
+            }
+          }
+          
+          alert(`Please switch to PulseChain in your MetaMask wallet.\n\nCurrent chain: ${currentChainInfo.name} (${chainId})\nRequired: PulseChain Mainnet (369) or Testnet (943)\n\nThe app will try to switch automatically, but if that fails, please switch manually in MetaMask.`)
           return
         }
         
@@ -1777,9 +1868,25 @@ onMounted(() => {
       }
     })
     
-    window.ethereum.on('chainChanged', () => {
-      console.log("MetaMask chain changed, refreshing...")
-      window.location.reload()
+    window.ethereum.on('chainChanged', (chainId) => {
+      console.log("MetaMask chain changed to:", chainId)
+      const newChainId = parseInt(chainId, 16)
+      console.log("New chain ID (decimal):", newChainId)
+      
+      // Check if the new chain is supported
+      if (SUPPORTED_CHAINS.includes(newChainId)) {
+        console.log("Switched to supported chain, reconnecting...")
+        // Clear previous state and reconnect
+        stakes.value = []
+        walletBalance.value = 0
+        connectToMetaMask()
+      } else {
+        console.log("Switched to unsupported chain:", newChainId)
+        // Clear state but don't auto-reconnect to avoid loops
+        account.value = null
+        stakes.value = []
+        walletBalance.value = 0
+      }
     })
     
     // Check if already connected
@@ -2022,6 +2129,8 @@ function convertToLhex(amount, format) {
   if (isNaN(num)) return '0';
   return format === 'hearts' ? (num / 1e8).toString() : num.toString();
 }
+
+
 </script>
 
 <style scoped>
