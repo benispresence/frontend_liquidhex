@@ -149,40 +149,18 @@
           <div v-if="activePopup === 'mint'" class="form-container">
             <div class="form-group">
               <label for="mintId">Stake ID:</label>
-              <input type="text" id="mintId" v-model="mintData.id" placeholder="Stake ID">
+              <input type="text" id="mintId" v-model="mintData.id" placeholder="Enter Stake ID (auto-fills other fields)" @input="handleStakeIdInput">
             </div>
             <div class="form-group">
-              <label for="mintAmount">Amount:</label>
-              <div class="amount-input-container">
-                <input 
-                  type="text" 
-                  id="mintAmount" 
-                  v-model="mintData.amount" 
-                  :placeholder="mintData.amountFormat === 'lhex' ? 'Amount in LHEX' : 'Amount in LHEX hearts'"
-                >
-                <div class="amount-format-toggle">
-                  <button 
-                    :class="{ active: mintData.amountFormat === 'lhex' }"
-                    @click="mintData.amountFormat = 'lhex'"
-                  >
-                    LHEX
-                  </button>
-                  <button 
-                    :class="{ active: mintData.amountFormat === 'hearts' }"
-                    @click="mintData.amountFormat = 'hearts'"
-                  >
-                    Hearts
-                  </button>
-                </div>
-              </div>
-              <div class="amount-info">
-                <span v-if="mintData.amountFormat === 'lhex'">
-                  1 LHEX = 100,000,000 Hearts
-                </span>
-                <span v-else>
-                  Hearts are the smallest unit (1 LHEX = 100,000,000 Hearts)
-                </span>
-              </div>
+              <label for="mintAmount">Amount (auto-filled):</label>
+              <input 
+                type="text" 
+                id="mintAmount" 
+                v-model="displayAmount" 
+                placeholder="Amount will be auto-filled"
+                readonly
+              >
+              <div class="field-info">Amount is automatically filled when you enter a Stake ID</div>
             </div>
             <div class="form-group">
               <label for="mintStartDate">Minting Start Date (Unix):</label>
@@ -197,71 +175,72 @@
               <textarea id="mintProof" v-model="mintData.proof" placeholder="Merkle Proof"></textarea>
             </div>
             <div class="form-group">
-              <label for="mintSignature">Signature (optional):</label>
-              <input type="text" id="mintSignature" v-model="mintData.signature" placeholder="Optional signature">
+              <label for="mintSignature">Authorization Signature (optional):</label>
+              <input type="text" id="mintSignature" v-model="mintData.signature" placeholder="Paste authorization signature here if minting on behalf of someone else">
+              <div class="field-info">Only required if you're minting a stake on behalf of another address using their authorization signature</div>
             </div>
             <div class="form-actions">
-              <button class="action-button" @click="handleAutoPopulate">Auto Populate</button>
-            <button class="submit-button" @click="handleMint">Mint LHEX</button>
+              <button class="submit-button" @click="handleMint">Mint LHEX</button>
             </div>
           </div>
           
           <!-- Create Signature Form -->
           <div v-if="activePopup === 'signature'" class="form-container">
-            <div class="form-group">
-              <label for="sigRecipientAddress">Recipient Address:</label>
-              <input type="text" id="sigRecipientAddress" v-model="signatureData.recipientAddress" placeholder="0x...">
+            <div class="signature-info">
+              <p><strong>Create Authorization Signature</strong></p>
+              <p>This allows you to authorize another address to mint a specific stake on your behalf.</p>
             </div>
             <div class="form-group">
               <label for="sigId">Stake ID:</label>
-              <input type="text" id="sigId" v-model="signatureData.id" placeholder="Stake ID">
+              <input type="text" id="sigId" v-model="signatureData.id" placeholder="Enter Stake ID (auto-fills other fields)" @input="handleSignatureStakeIdInput">
             </div>
             <div class="form-group">
-              <label for="sigAmount">Amount:</label>
-              <div class="amount-input-container">
-                <input 
-                  type="text" 
-                  id="sigAmount" 
-                  v-model="signatureData.amount" 
-                  :placeholder="signatureData.amountFormat === 'lhex' ? 'Amount in LHEX' : 'Amount in LHEX hearts'"
-                >
-                <div class="amount-format-toggle">
-                  <button 
-                    :class="{ active: signatureData.amountFormat === 'lhex' }"
-                    @click="signatureData.amountFormat = 'lhex'"
-                  >
-                    LHEX
-                  </button>
-                  <button 
-                    :class="{ active: signatureData.amountFormat === 'hearts' }"
-                    @click="signatureData.amountFormat = 'hearts'"
-                  >
-                    Hearts
-                  </button>
+              <label for="sigRecipientAddress">Authorized Address:</label>
+              <input type="text" id="sigRecipientAddress" v-model="signatureData.recipientAddress" placeholder="0x... (Address that will be authorized to mint)">
+              <div class="field-info">This address will be authorized to mint this stake on your behalf</div>
             </div>
+            <div class="form-group">
+              <label for="sigAmount">Amount (auto-filled):</label>
+              <input 
+                type="text" 
+                id="sigAmount" 
+                v-model="displaySignatureAmount" 
+                placeholder="Amount will be auto-filled"
+                readonly
+              >
+              <div class="field-info">Amount is automatically filled when you enter a Stake ID</div>
             </div>
-              <div class="amount-info">
-                <span v-if="signatureData.amountFormat === 'lhex'">
-                  1 LHEX = 100,000,000 Hearts
-                </span>
-                <span v-else>
-                  Hearts are the smallest unit (1 LHEX = 100,000,000 Hearts)
-                </span>
+            <div class="form-group" v-if="signatureData.startDate && signatureData.endDate">
+              <label>Minting Period:</label>
+              <div class="date-info">
+                <div>Start: {{ formatDate(signatureData.startDate) }}</div>
+                <div>End: {{ formatDate(signatureData.endDate) }}</div>
+              </div>
             </div>
-            </div>
-            <button class="submit-button" @click="handleCreateSignature">Generate Signature</button>
+            <button class="submit-button" @click="handleCreateSignature" :disabled="!signatureData.id || !signatureData.recipientAddress || !signatureData.amount">
+              Generate Authorization Signature
+            </button>
             <div v-if="signatureOutput" class="signature-output">
-              <h4>Generated Signature:</h4>
+              <h4>Generated Authorization Signature:</h4>
+              <div class="signature-details">
+                <div><strong>Stake ID:</strong> {{ signatureData.id }}</div>
+                <div><strong>Authorized Address:</strong> {{ signatureData.recipientAddress }}</div>
+                <div><strong>Amount:</strong> {{ formatAmountDisplay(signatureData.amount) }}</div>
+              </div>
               <div class="output-code">{{ signatureOutput }}</div>
               <button class="copy-button" @click="copySignature">
                 <span class="icon">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2 2v1"></path>
                   </svg>
                 </span>
-                Copy to Clipboard
+                Copy Signature to Clipboard
               </button>
+              <div class="signature-usage">
+                <p><strong>How to use this signature:</strong></p>
+                <p>Share this signature with the authorized address. They can use it in the "Mint Manually" form to mint this stake on your behalf.</p>
+              </div>
             </div>
           </div>
         </div>
@@ -338,13 +317,21 @@
                   </span>
                 </td>
                 <td>
-                  <button 
-                    v-if="!stake.minted && stake.address === account && !isExpired(stake) && !isLocked(stake) && isViewingOwnWallet" 
-                    class="mint-button" 
-                    @click="initiateMint(stake)"
-                  >
-                    Mint
-                  </button>
+                  <div v-if="!stake.minted && stake.address === account && !isExpired(stake) && !isLocked(stake) && isViewingOwnWallet" class="action-buttons-group">
+                    <button 
+                      class="mint-button" 
+                      @click="initiateMint(stake)"
+                    >
+                      Mint
+                    </button>
+                    <button 
+                      class="signature-button" 
+                      @click="openSignatureForStake(stake)"
+                      title="Create authorization signature for this stake"
+                    >
+                      📝
+                    </button>
+                  </div>
                   <button 
                     v-else-if="!stake.minted && stake.address === account && isLocked(stake) && isViewingOwnWallet" 
                     class="locked-button" 
@@ -500,6 +487,7 @@ import Papa from 'papaparse'
 import { liquidHexABI, liquidHexAddress } from '../contracts/liquidHexABI.js'
 import Navbar from '../components/Navbar.vue';
 import Notification from '../components/Notification.vue';
+import Web3 from 'web3';
 
 // State variables
 const account = ref(null)
@@ -531,7 +519,6 @@ const mintData = ref({
   signature: '' 
 })
 const signatureData = ref({ 
-  burnerAddress: '', 
   id: '', 
   amount: '', 
   amountFormat: 'lhex', // 'lhex' or 'hearts'
@@ -1013,14 +1000,17 @@ async function initiateMint(stake) {
 
     const merkleProof = proofRow['proof'].split(',');
     console.log("Merkle proof loaded:", merkleProof.length, "items");
+    console.log("First few proof items:", merkleProof.slice(0, 3));
+    console.log("Full merkle proof:", merkleProof);
 
     const signature = '0x'; // Empty signature since we're not using signature-based minting
 
-    // Get current gas prices
-    const gasPrice = await provider.getFeeData();
+    // Get current gas prices using Web3 like original app.js
+    const web3 = new Web3(window.ethereum);
+    const gasPrice = await web3.eth.getGasPrice();
     console.log("Current gas price:", gasPrice);
     
-    const priorityFee = Math.round(Number(gasPrice.maxFeePerGas) * 0.2);
+    const priorityFee = Math.round(Number(gasPrice) * 0.2);
     const gasLimit = 350000;
     
     try {
@@ -1042,46 +1032,40 @@ async function initiateMint(stake) {
         'Your mint transaction has been submitted to the network'
       );
 
-      // Call the contract to mint tokens
-      const tx = await tokenContract.claim(
-        stakeId,
-        amount,
-        startDate,
-        endDate,
-        merkleProof,
-        signature,
-        {
-          gasLimit: gasLimit,
-          maxPriorityFeePerGas: priorityFee,
-          maxFeePerGas: gasPrice.maxFeePerGas
-        }
-      );
+      // Use the same transaction encoding method as the original app.js
+      const functionSignature = web3.eth.abi.encodeFunctionSignature('claim(uint256,uint256,uint256,uint256,bytes32[],bytes)');
+      const data = functionSignature +
+                   web3.eth.abi.encodeParameters(['uint256', 'uint256', 'uint256', 'uint256', 'bytes32[]', 'bytes'], 
+                     [stakeId, amount, startDate, endDate, merkleProof, signature]).substr(2);
+
+      const transactionParameters = {
+        to: liquidHexAddress,
+        from: account.value,
+        data: data,
+        value: '0x0',
+        gas: web3.utils.toHex(gasLimit),
+        gasPrice: web3.utils.toHex(Number(gasPrice)),
+      };
+
+      console.log("Transaction parameters:", transactionParameters);
+      console.log("Encoded transaction data length:", data.length);
+
+      // Send transaction using ethereum.request like the original
+      const txHash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [transactionParameters],
+      });
       
-      console.log("Transaction sent:", tx.hash);
-      console.log("Waiting for transaction confirmation...");
-    
-      await tx.wait();
-      console.log("Transaction confirmed!");
-    
-      // Mark the stake as minted after successful transaction
-      const updatedStakes = [...stakes.value];
-      const stakeIndex = updatedStakes.findIndex(s => s.id === stakeId);
-      if (stakeIndex !== -1) {
-        updatedStakes[stakeIndex].minted = true;
-      }
-      stakes.value = updatedStakes;
-    
-      // Update balance after minting
-      await fetchWalletBalance();
-    
+      console.log("Transaction Hash:", txHash);
+      
       // Show success notification
       showNotificationMessage(
         'success',
-        'Mint Successful!',
-        `Congratulations! You have successfully minted ${formatAmountDisplay(amount)} LHEX`
+        'Transaction Submitted!',
+        `Transaction sent with hash: ${txHash}`
       );
 
-      // Update metrics locally instead of reloading
+      // Update metrics locally
       await fetchAndDisplayStakes(account.value);
     } catch (txError) {
       console.error("Error in transaction:", txError);
@@ -1155,8 +1139,8 @@ async function handleMint() {
       return;
     }
     
-    // Convert amount to hearts format for contract interaction
-    const amountInHearts = convertToHearts(mintData.value.amount, mintData.value.amountFormat);
+    // Use the amount directly since it's already in hearts format from auto-fill
+    const amountInHearts = mintData.value.amount;
     
     // Parse merkle proof string into array
     const merkleProofArray = mintData.value.proof
@@ -1164,7 +1148,7 @@ async function handleMint() {
       .map(p => p.trim())
       .filter(p => p !== '')
     
-    // Use provided signature or default to empty
+    // Use provided signature or default to empty bytes
     const signature = mintData.value.signature || '0x'
     
     console.log("Minting with parameters:", {
@@ -1173,25 +1157,44 @@ async function handleMint() {
       startDate: mintData.value.startDate,
       endDate: mintData.value.endDate,
       proofItems: merkleProofArray.length,
-      signature: signature === '0x' ? 'None (using empty signature)' : 'Provided'
+      signature: signature === '0x' ? 'None (using empty signature)' : 'Provided',
+      merkleProofSample: merkleProofArray.slice(0, 3) // Show first 3 proof items
     })
     
-    const tx = await tokenContract.claim(
-      mintData.value.id,
-      amountInHearts,
-      mintData.value.startDate,
-      mintData.value.endDate,
-      merkleProofArray,
-      signature
-    )
+    console.log("Full merkle proof array:", merkleProofArray)
     
-    console.log("Transaction sent:", tx.hash)
-    console.log("Waiting for transaction confirmation...")
+    // Use the same transaction encoding method as the original app.js
+    const web3 = new Web3(window.ethereum);
+    const functionSignature = web3.eth.abi.encodeFunctionSignature('claim(uint256,uint256,uint256,uint256,bytes32[],bytes)');
+    const data = functionSignature +
+                 web3.eth.abi.encodeParameters(['uint256', 'uint256', 'uint256', 'uint256', 'bytes32[]', 'bytes'], 
+                   [mintData.value.id, amountInHearts, mintData.value.startDate, mintData.value.endDate, merkleProofArray, signature]).substr(2);
     
-    await tx.wait()
+    // Get gas prices using Web3 like the original app.js
+    const gasPrice = await web3.eth.getGasPrice();
+    const priorityFee = Math.round(Number(gasPrice) * 0.2);
+    const gasLimit = 350000;
+
+    const transactionParameters = {
+      to: liquidHexAddress,
+      from: account.value,
+      data: data,
+      value: '0x0',
+      gas: web3.utils.toHex(gasLimit),
+      gasPrice: web3.utils.toHex(Number(gasPrice)),
+    };
+
+    console.log("Manual mint transaction parameters:", transactionParameters);
+    console.log("Manual mint encoded data length:", data.length);
+
+    // Send transaction using ethereum.request like the original
+    const txHash = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [transactionParameters],
+    });
     
-    console.log("Transaction confirmed!")
-    showNotificationMessage('success', 'Mint Successful', 'Manual mint successful!');
+    console.log("Transaction Hash:", txHash)
+    showNotificationMessage('success', 'Transaction Submitted', `Transaction sent with hash: ${txHash}`);
     closePopup()
   } catch (error) {
     console.error("Error with manual mint:", error)
@@ -1216,35 +1219,48 @@ async function handleCreateSignature() {
       return;
     }
     
-    // Convert amount to hearts format for contract interaction
-    const amountInHearts = convertToHearts(signatureData.value.amount, signatureData.value.amountFormat);
+    // Use the amount directly since it's already in hearts format from auto-fill
+    const amountInHearts = signatureData.value.amount;
     
+    // Create signature exactly like the original app.js implementation
     const data = {
       sender: signatureData.value.recipientAddress,
-      id: signatureData.value.id,
-      amount: amountInHearts
+      id: signatureData.value.id.toString(),
+      amount: amountInHearts.toString()
+    };
+    
+    console.log("Creating signature for:", data);
+    
+    // Use Web3 to encode parameters exactly like the original
+    const web3 = new Web3(window.ethereum);
+    const encoded_data = web3.eth.abi.encodeParameters(['address', 'uint256', 'uint256'], [data.sender, data.id, data.amount]);
+    
+    // Create message hash exactly like the original using ethers (try both v5 and v6 methods)
+    let messageHash;
+    try {
+      // Try ethers v5 method first (like original app.js)
+      messageHash = ethers.utils.solidityKeccak256(['bytes'], [encoded_data]);
+    } catch (error) {
+      // Fallback to ethers v6 method
+      messageHash = ethers.solidityPackedKeccak256(['bytes'], [encoded_data]);
     }
     
-    // Create a hash of the parameters to sign
-    const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
-      ['address', 'uint256', 'uint256'],
-      [data.sender, data.id, data.amount]
-    )
+    console.log("Encoded data:", encoded_data);
+    console.log("Message hash:", messageHash);
     
-    const messageHash = ethers.keccak256(encoded)
-    
-    // Sign the hash with the user's private key
+    // Sign using personal_sign method exactly like the original
     const signature = await window.ethereum.request({
       method: 'personal_sign',
-      params: [messageHash, account.value]
-    })
+      params: [messageHash, account.value],
+    });
     
     // Set the signature output
-    signatureOutput.value = signature
+    signatureOutput.value = signature;
     
-    console.log("Signature generated:", signature)
+    console.log("Signature generated:", signature);
+    showNotificationMessage('success', 'Signature Created', 'Authorization signature generated successfully!');
   } catch (error) {
-    console.error("Error creating signature:", error)
+    console.error("Error creating signature:", error);
     showNotificationMessage('error', 'Signature Failed', error.message || 'Failed to create signature');
   }
 }
@@ -1360,6 +1376,26 @@ const filteredStakes = computed(() => {
 const isViewingOwnWallet = computed(() => {
   return viewedAddress.value && account.value && 
     viewedAddress.value.toLowerCase() === account.value.toLowerCase()
+})
+
+// Computed property for display amount in manual mint form
+const displayAmount = computed(() => {
+  if (!mintData.value.amount) return '';
+  const amount = Number(mintData.value.amount);
+  return (amount / 1e8).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 8
+  }) + ' LHEX';
+})
+
+// Computed property for display amount in signature form
+const displaySignatureAmount = computed(() => {
+  if (!signatureData.value.amount) return '';
+  const amount = Number(signatureData.value.amount);
+  return (amount / 1e8).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 8
+  }) + ' LHEX';
 })
 
 // Watch for changes to filtered stakes or chart view to update chart
@@ -1952,6 +1988,222 @@ function resetDateFilter() {
   renderChart()
 }
 
+// Handle stake ID input for manual mint form
+async function handleStakeIdInput() {
+  if (!mintData.value.id) {
+    // Clear fields if stake ID is empty
+    mintData.value.amount = '';
+    mintData.value.startDate = '';
+    mintData.value.endDate = '';
+    mintData.value.proof = '';
+    return;
+  }
+  
+  try {
+    // Fetch and parse the base CSV file
+    const csvData = await fetchCSVWithRetry('/merkle_tree_base.csv', 3);
+    
+    // Find the stake with the matching ID
+    const stake = csvData.find(row => row['id'] === mintData.value.id);
+    
+    if (!stake) {
+      return; // Don't show error, just don't fill
+    }
+    
+    // Populate the form fields with the stake data
+    mintData.value.amount = stake['amount'];
+    mintData.value.startDate = stake['minting_start_date'];
+    mintData.value.endDate = stake['minting_end_date'];
+    
+    // Find merkle proof
+    await findAndSetMerkleProof(mintData.value.id, 'mint');
+  } catch (error) {
+    console.error("Error auto-filling mint data:", error);
+  }
+}
+
+// Handle stake ID input for signature form
+async function handleSignatureStakeIdInput() {
+  if (!signatureData.value.id) {
+    // Clear fields if stake ID is empty
+    signatureData.value.amount = '';
+    signatureData.value.startDate = '';
+    signatureData.value.endDate = '';
+    signatureData.value.proof = '';
+    return;
+  }
+  
+  try {
+    // Fetch and parse the base CSV file
+    const csvData = await fetchCSVWithRetry('/merkle_tree_base.csv', 3);
+    
+    // Find the stake with the matching ID
+    const stake = csvData.find(row => row['id'] === signatureData.value.id);
+    
+    if (!stake) {
+      return; // Don't show error, just don't fill
+    }
+    
+    // Check if this stake belongs to the connected account
+    const stakeAddress = String(stake['eligible_address'] || '').trim().toLowerCase();
+    const connectedAccount = String(account.value).trim().toLowerCase();
+    
+    if (stakeAddress !== connectedAccount) {
+      return; // Don't fill if not user's stake
+    }
+    
+    // Populate the form fields with the stake data
+    signatureData.value.amount = stake['amount'];
+    signatureData.value.startDate = stake['minting_start_date'];
+    signatureData.value.endDate = stake['minting_end_date'];
+    
+    // Find merkle proof
+    await findAndSetMerkleProof(signatureData.value.id, 'signature');
+  } catch (error) {
+    console.error("Error auto-filling signature data:", error);
+  }
+}
+
+// Helper function to find and set merkle proof
+async function findAndSetMerkleProof(stakeId, formType) {
+  const proofFiles = [
+    '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_3_until_end_stake_id_174231.csv',
+    '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_174242_until_end_stake_id_272449.csv',
+    '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_272460_until_end_stake_id_338663.csv',
+    '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_338667_until_end_stake_id_385896.csv',
+    '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_385899_until_end_stake_id_433470.csv',
+    '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_433472_until_end_stake_id_474864.csv',
+    '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_474866_until_end_stake_id_513074.csv',
+    '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_513075_until_end_stake_id_550468.csv',
+    '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_550469_until_end_stake_id_584350.csv',
+    '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_584351_until_end_stake_id_614067.csv',
+    '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_614069_until_end_stake_id_650060.csv',
+    '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_650062_until_end_stake_id_684853.csv',
+    '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_684854_until_end_stake_id_722051.csv',
+    '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_722054_until_end_stake_id_762413.csv',
+    '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_762417_until_end_stake_id_55555516.csv'
+  ];
+  
+  let proofRow = null;
+  
+  // Search through the Merkle Proof CSV files
+  for (const file of proofFiles) {
+    try {
+      const [startStakeId, endStakeId] = file.match(/_stake_id_(\d+)_until_end_stake_id_(\d+)\.csv$/).slice(1, 3).map(Number);
+      if (Number(stakeId) >= startStakeId && Number(stakeId) <= endStakeId) {
+        const proofCSVData = await fetchCSVWithRetry(file, 3);
+        proofRow = proofCSVData.find(row => row['stake_id'] == stakeId);
+        
+        if (proofRow) {
+          break;
+        }
+      }
+    } catch (error) {
+      console.error(`Error searching in file ${file}:`, error);
+    }
+  }
+  
+  if (proofRow && proofRow['proof']) {
+    if (formType === 'mint') {
+      mintData.value.proof = proofRow['proof'];
+    } else if (formType === 'signature') {
+      signatureData.value.proof = proofRow['proof'];
+    }
+  }
+}
+
+// Handle auto-populate for signature
+async function handleAutoPopulateSignature() {
+  try {
+    if (!signatureData.value.id) {
+      showNotificationMessage('error', 'Missing Stake ID', 'Please enter a Stake ID first');
+      return;
+    }
+    
+    console.log("Auto-populating signature data for Stake ID:", signatureData.value.id);
+    
+    // Fetch and parse the base CSV file with retries
+    const csvData = await fetchCSVWithRetry('/merkle_tree_base.csv', 3);
+    
+    // Find the stake with the matching ID
+    const stake = csvData.find(row => row['id'] === signatureData.value.id);
+    
+    if (!stake) {
+      showNotificationMessage('error', 'Stake Not Found', 'Stake ID not found in the data');
+      return;
+    }
+    
+    // Check if this stake belongs to the connected account
+    const stakeAddress = String(stake['eligible_address'] || '').trim().toLowerCase();
+    const connectedAccount = String(account.value).trim().toLowerCase();
+    
+    if (stakeAddress !== connectedAccount) {
+      showNotificationMessage('error', 'Not Your Stake', 'This stake does not belong to your connected wallet');
+      return;
+    }
+    
+    // Populate the form fields with the stake data
+    signatureData.value.amount = stake['amount'];
+    signatureData.value.startDate = stake['minting_start_date'];
+    signatureData.value.endDate = stake['minting_end_date'];
+    
+    // Find and populate merkle proof
+    const proofFiles = [
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_3_until_end_stake_id_174231.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_174242_until_end_stake_id_272449.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_272460_until_end_stake_id_338663.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_338667_until_end_stake_id_385896.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_385899_until_end_stake_id_433470.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_433472_until_end_stake_id_474864.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_474866_until_end_stake_id_513074.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_513075_until_end_stake_id_550468.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_550469_until_end_stake_id_584350.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_584351_until_end_stake_id_614067.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_614069_until_end_stake_id_650060.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_650062_until_end_stake_id_684853.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_684854_until_end_stake_id_722051.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_722054_until_end_stake_id_762413.csv',
+      '/merkle_tree_proofs/merkle_tree_proofs_start_stake_id_762417_until_end_stake_id_55555516.csv'
+    ];
+    
+    let proofRow = null;
+    const stakeId = signatureData.value.id;
+    
+    // Search through the Merkle Proof CSV files
+    for (const file of proofFiles) {
+      try {
+        const [startStakeId, endStakeId] = file.match(/_stake_id_(\d+)_until_end_stake_id_(\d+)\.csv$/).slice(1, 3).map(Number);
+        if (Number(stakeId) >= startStakeId && Number(stakeId) <= endStakeId) {
+          console.log(`Stake ID ${stakeId} is in range ${startStakeId}-${endStakeId}, fetching file...`);
+          
+          const proofCSVData = await fetchCSVWithRetry(file, 3);
+          proofRow = proofCSVData.find(row => row['stake_id'] == stakeId);
+          
+          if (proofRow) {
+            console.log("Found Merkle proof for stake ID:", stakeId);
+            break;
+          }
+        }
+      } catch (error) {
+        console.error(`Error searching in file ${file}:`, error);
+      }
+    }
+    
+    if (!proofRow || !proofRow['proof']) {
+      showNotificationMessage('warning', 'Proof Not Found', 'Merkle proof not found, but signature can still be created');
+    } else {
+      // Set the Merkle proof in the form
+      signatureData.value.proof = proofRow['proof'];
+    }
+    
+    showNotificationMessage('success', 'Auto-Fill Complete', 'Stake data has been populated successfully');
+    console.log("Auto-population complete for signature!");
+  } catch (error) {
+    console.error("Error auto-populating signature data:", error);
+    showNotificationMessage('error', 'Auto-Fill Failed', error.message || 'Failed to auto-populate signature data');
+  }
+}
+
 // Handle auto-populate
 async function handleAutoPopulate() {
   try {
@@ -2035,6 +2287,23 @@ async function handleAutoPopulate() {
   }
 }
 
+// Open signature popup for a specific stake
+function openSignatureForStake(stake) {
+  // Pre-populate signature data with stake information
+  signatureData.value.id = stake.id;
+  signatureData.value.amount = stake.amount.toString();
+  signatureData.value.amountFormat = 'hearts'; // Amount from stake is in hearts
+  signatureData.value.startDate = stake.startDate;
+  signatureData.value.endDate = stake.endDate;
+  signatureData.value.recipientAddress = '';
+  
+  // Clear previous signature output
+  signatureOutput.value = null;
+  
+  // Open the signature popup
+  showPopup('signature');
+}
+
 // Copy signature to clipboard
 function copySignature() {
   const textArea = document.createElement('textarea')
@@ -2043,7 +2312,7 @@ function copySignature() {
   textArea.select()
   document.execCommand('copy')
   document.body.removeChild(textArea)
-  alert('Signature copied to clipboard!')
+  showNotificationMessage('success', 'Copied!', 'Signature copied to clipboard')
 }
 
 // Add notification helper function
@@ -2471,6 +2740,13 @@ function convertToLhex(amount, format) {
   background: linear-gradient(135deg, #e67e22, #d35400);
   transform: translateY(-2px);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.submit-button:disabled {
+  background: linear-gradient(135deg, #999, #777);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .signature-output {
@@ -3045,7 +3321,7 @@ function convertToLhex(amount, format) {
   
 .action-button {
   padding: 0.8rem 1.5rem;
-  background-color: rgba(0, 0, 139, 0.6);
+  background: linear-gradient(135deg, #f39c12, #e67e22);
   color: white;
   border: none;
   border-radius: 5px;
@@ -3057,7 +3333,7 @@ function convertToLhex(amount, format) {
 }
 
 .action-button:hover {
-  background-color: rgba(0, 0, 139, 0.8);
+  background: linear-gradient(135deg, #e67e22, #d35400);
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
@@ -3069,7 +3345,7 @@ function convertToLhex(amount, format) {
   gap: 0.5rem;
   margin-top: 1rem;
   padding: 0.7rem 1rem;
-  background-color: rgba(33, 150, 243, 0.8);
+  background: linear-gradient(135deg, #f39c12, #e67e22);
   color: white;
   border: none;
   border-radius: 5px;
@@ -3081,7 +3357,7 @@ function convertToLhex(amount, format) {
 }
 
 .copy-button:hover {
-  background-color: rgba(33, 150, 243, 1);
+  background: linear-gradient(135deg, #e67e22, #d35400);
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
@@ -3155,6 +3431,106 @@ function convertToLhex(amount, format) {
   word-break: break-word;
 }
 
+/* Signature form specific styles */
+.signature-info {
+  background-color: rgba(0, 0, 139, 0.3);
+  padding: 1rem;
+  border-radius: 5px;
+  margin-bottom: 1.5rem;
+  border-left: 4px solid #f39c12;
+}
+
+.signature-info p {
+  margin: 0.5rem 0;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.field-info {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+  margin-top: 0.3rem;
+}
+
+.date-info {
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+.date-info div {
+  margin: 0.2rem 0;
+}
+
+.signature-details {
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 1rem;
+  border-radius: 5px;
+  margin-bottom: 1rem;
+  font-family: monospace;
+  font-size: 0.9rem;
+}
+
+.signature-details div {
+  margin: 0.5rem 0;
+  word-break: break-all;
+}
+
+.signature-usage {
+  background-color: rgba(33, 150, 243, 0.2);
+  padding: 1rem;
+  border-radius: 5px;
+  margin-top: 1rem;
+  border-left: 4px solid #2196F3;
+}
+
+.signature-usage p {
+  margin: 0.5rem 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+}
+
+.form-group input[readonly] {
+  background-color: rgba(0, 0, 0, 0.4);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: not-allowed;
+}
+
+/* Action buttons group in stakes table */
+.action-buttons-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.signature-button {
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 32px;
+  min-width: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.signature-button:hover {
+  background-color: #1976D2;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.signature-button:active {
+  transform: translateY(0);
+}
+
 /* Add touch optimizations */
 @media (max-width: 768px) {
   input, button, select, textarea {
@@ -3189,6 +3565,16 @@ function convertToLhex(amount, format) {
   .popup-content {
     max-height: 85vh;
     margin: 5vh auto;
+  }
+  
+  /* Signature form mobile adjustments */
+  .signature-details {
+    font-size: 0.8rem;
+    padding: 0.8rem;
+  }
+  
+  .signature-info {
+    padding: 0.8rem;
   }
 }
 </style> 
