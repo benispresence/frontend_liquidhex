@@ -1081,10 +1081,8 @@ async function initiateMint(stake) {
         `Congratulations! You have successfully minted ${formatAmountDisplay(amount)} LHEX`
       );
 
-      // Reload the page after a short delay to update metrics
-      setTimeout(() => {
-        window.location.reload();
-      }, 3000);
+      // Update metrics locally instead of reloading
+      await fetchAndDisplayStakes(account.value);
     } catch (txError) {
       console.error("Error in transaction:", txError);
       showNotificationMessage(
@@ -2096,10 +2094,8 @@ async function mintLiquidHex() {
         `Congratulations! You have successfully minted ${selectedStake.value.amount} LHEX`
       );
 
-      // Reload the page after a short delay to update metrics
-      setTimeout(() => {
-        window.location.reload();
-      }, 3000);
+      // Update metrics locally instead of reloading
+      await fetchAndDisplayStakes(account.value);
     } else {
       showNotificationMessage('error', 'Transaction Failed', 'The mint transaction failed');
     }
