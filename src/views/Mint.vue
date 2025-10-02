@@ -748,13 +748,37 @@ async function connectToMetaMask() {
       tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer)
         console.log("Contract instance created:", tokenAddress)
         
-        // Verify contract connectivity
+        // Verify contract connectivity with detailed error handling
         try {
+          console.log("Testing contract connection...");
+          console.log("Contract address:", liquidHexAddress);
+          console.log("Provider network:", await provider.getNetwork());
+          
           const hasAnyId = await tokenContract.hasClaimedId(1)
           console.log("Successfully connected to contract, test query result:", hasAnyId)
         } catch (contractError) {
           console.error("Failed to query contract:", contractError)
-          alert("Failed to connect to the LiquidHEX contract. Make sure you're on PulseChain network.")
+          console.error("Contract error details:", {
+            code: contractError.code,
+            method: contractError.info?.method,
+            signature: contractError.info?.signature,
+            value: contractError.value
+          });
+          
+          // Check if it's a network mismatch
+          try {
+            const network = await provider.getNetwork();
+            const chainId = Number(network.chainId);
+            if (!SUPPORTED_CHAINS.includes(chainId)) {
+              const supportedNames = SUPPORTED_CHAINS.map(id => `${CHAIN_INFO[id]?.name || 'Unknown'} (${id})`).join(' or ');
+              alert(`Wrong network detected. Please switch to PulseChain.\n\nCurrent: ${network.name} (${chainId})\nSupported: ${supportedNames}`);
+              return;
+            }
+          } catch (networkError) {
+            console.error("Error getting network:", networkError);
+          }
+          
+          alert("Failed to connect to the LiquidHEX contract. Please check your network connection and try again.");
           return
         }
       
@@ -778,16 +802,99 @@ async function connectToMetaMask() {
   }
 }
 
-// Add fetchCSVWithRetry function from the original code
+// Persistent CSV Cache using localStorage (since CSV files never change)
+const CSV_CACHE_PREFIX = 'liquidhex_csv_';
+const CSV_CACHE_VERSION = '1.0'; // Increment to invalidate all caches
+
+// Memory cache for session (faster access)
+const csvMemoryCache = new Map();
+
+// Blockchain call cache with per-address expiration
+const blockchainCache = new Map();
+const BLOCKCHAIN_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Get CSV data from persistent cache
+function getPersistedCSVCache(url) {
+  try {
+    const cacheKey = CSV_CACHE_PREFIX + btoa(url).replace(/[^a-zA-Z0-9]/g, '');
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      const { data, version } = JSON.parse(cached);
+      if (version === CSV_CACHE_VERSION) {
+        console.log(`Using persistent cache for ${url} (${data.length} rows)`);
+        return data;
+      } else {
+        console.log(`Cache version mismatch for ${url}, will refresh`);
+        localStorage.removeItem(cacheKey);
+      }
+    }
+  } catch (error) {
+    console.warn('Error reading persistent CSV cache:', error);
+  }
+  return null;
+}
+
+// Save CSV data to persistent cache
+function setPersistedCSVCache(url, data) {
+  try {
+    const cacheKey = CSV_CACHE_PREFIX + btoa(url).replace(/[^a-zA-Z0-9]/g, '');
+    const cacheData = {
+      data,
+      version: CSV_CACHE_VERSION,
+      timestamp: Date.now()
+    };
+    localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+    console.log(`Persisted ${data.length} rows for ${url}`);
+  } catch (error) {
+    console.warn('Error saving to persistent CSV cache:', error);
+    // If localStorage is full, try to clear old cache entries
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(CSV_CACHE_PREFIX)) {
+          localStorage.removeItem(key);
+        }
+      }
+      // Try again
+      localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+    } catch (retryError) {
+      console.error('Failed to save CSV cache even after cleanup:', retryError);
+    }
+  }
+}
+
+// Enhanced fetchCSVWithRetry with persistent caching
 async function fetchCSVWithRetry(url, maxRetries = 3, retryDelay = 1000) {
+  // Check memory cache first (fastest)
+  if (csvMemoryCache.has(url)) {
+    console.log(`Using memory cache for ${url}`);
+    return csvMemoryCache.get(url);
+  }
+
+  // Check persistent cache second
+  const persistedData = getPersistedCSVCache(url);
+  if (persistedData) {
+    csvMemoryCache.set(url, persistedData);
+    return persistedData;
+  }
+
+  // Fetch from network as last resort
   for (let i = 0; i < maxRetries; i++) {
     try {
+      console.log(`Fetching ${url} from network (attempt ${i + 1}/${maxRetries})`);
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`Failed to fetch ${url}: ${response.status}`)
       }
       const csvText = await response.text();
-      return Papa.parse(csvText, { header: true }).data;
+      const parsedData = Papa.parse(csvText, { header: true }).data;
+      
+      // Cache in both memory and persistent storage
+      csvMemoryCache.set(url, parsedData);
+      setPersistedCSVCache(url, parsedData);
+      
+      console.log(`Fetched and cached ${parsedData.length} rows for ${url}`);
+      return parsedData;
     } catch (error) {
       console.error(`Attempt ${i + 1} to fetch CSV failed:`, error);
       if (i === maxRetries - 1) throw error;
@@ -795,6 +902,152 @@ async function fetchCSVWithRetry(url, maxRetries = 3, retryDelay = 1000) {
     }
   }
   throw new Error(`Failed to fetch CSV after ${maxRetries} attempts`);
+}
+
+// Function to clear all caches (for debugging or data updates)
+function clearAllCaches() {
+  // Clear memory caches
+  csvMemoryCache.clear();
+  blockchainCache.clear();
+  formatAmountCache.clear();
+  
+  // Clear persistent CSV cache
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(CSV_CACHE_PREFIX)) {
+        localStorage.removeItem(key);
+      }
+    }
+  } catch (error) {
+    console.warn('Error clearing persistent cache:', error);
+  }
+  
+  console.log('All caches cleared');
+}
+
+// Blockchain cache functions
+function getBlockchainCache(address, stakeId) {
+  const addressCache = blockchainCache.get(address.toLowerCase());
+  if (!addressCache) return null;
+  
+  const cached = addressCache.get(stakeId);
+  if (!cached) return null;
+  
+  // Check if cache is expired
+  if (Date.now() - cached.timestamp > BLOCKCHAIN_CACHE_TTL) {
+    addressCache.delete(stakeId);
+    return null;
+  }
+  
+  return cached.value;
+}
+
+function setBlockchainCache(address, stakeId, value) {
+  const addressKey = address.toLowerCase();
+  if (!blockchainCache.has(addressKey)) {
+    blockchainCache.set(addressKey, new Map());
+  }
+  
+  const addressCache = blockchainCache.get(addressKey);
+  addressCache.set(stakeId, {
+    value,
+    timestamp: Date.now()
+  });
+}
+
+function clearBlockchainCacheForAddress(address) {
+  blockchainCache.delete(address.toLowerCase());
+  console.log(`Cleared blockchain cache for address: ${address}`);
+}
+
+// Debug function to inspect cache status (available in browser console)
+function getCacheStats() {
+  const csvMemorySize = csvMemoryCache.size;
+  const blockchainAddresses = blockchainCache.size;
+  let totalBlockchainEntries = 0;
+  
+  blockchainCache.forEach(addressCache => {
+    totalBlockchainEntries += addressCache.size;
+  });
+  
+  // Check localStorage usage
+  let persistentCacheSize = 0;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(CSV_CACHE_PREFIX)) {
+        persistentCacheSize++;
+      }
+    }
+  } catch (error) {
+    console.warn('Error checking localStorage:', error);
+  }
+  
+  const stats = {
+    csvMemoryCache: csvMemorySize,
+    csvPersistentCache: persistentCacheSize,
+    blockchainCacheAddresses: blockchainAddresses,
+    blockchainCacheEntries: totalBlockchainEntries,
+    formatAmountCache: formatAmountCache.size
+  };
+  
+  console.log('Cache Statistics:', stats);
+  return stats;
+}
+
+// Make debug functions available globally for console access
+if (typeof window !== 'undefined') {
+  window.liquidhexDebug = {
+    getCacheStats,
+    clearAllCaches,
+    clearBlockchainCacheForAddress
+  };
+}
+
+// Function to validate contract and network
+async function validateContractAndNetwork() {
+  try {
+    if (!provider || !tokenContract) {
+      throw new Error('Provider or contract not initialized');
+    }
+
+    const network = await provider.getNetwork();
+    console.log('Current network:', {
+      name: network.name,
+      chainId: network.chainId,
+      ensAddress: network.ensAddress
+    });
+
+    // Check if we're on a supported PulseChain network (369 mainnet or 943 testnet)
+    const chainId = Number(network.chainId);
+    if (!SUPPORTED_CHAINS.includes(chainId)) {
+      const supportedNames = SUPPORTED_CHAINS.map(id => `${CHAIN_INFO[id]?.name || 'Unknown'} (${id})`).join(' or ');
+      throw new Error(`Wrong network. Expected ${supportedNames}, got ${network.name} (${chainId})`);
+    }
+
+    // Test a simple contract call
+    const testResult = await tokenContract.name();
+    console.log('Contract name:', testResult);
+    
+    return true;
+  } catch (error) {
+    console.error('Contract/network validation failed:', error);
+    throw error;
+  }
+}
+
+// Debounce utility function for performance optimization
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
 }
 
 // Updated fetchAndDisplayStakes to match the original implementation
@@ -807,6 +1060,9 @@ async function fetchAndDisplayStakes(address) {
       console.error("No address provided to fetch stakes")
       return
     }
+
+    // Validate contract and network before proceeding
+    await validateContractAndNetwork();
     
     // Ensure account is lowercased for comparison
     const connectedAccount = String(address).trim().toLowerCase();
@@ -835,23 +1091,79 @@ async function fetchAndDisplayStakes(address) {
     let stakeCountSum = 0;
     let mintedStakeCountSum = 0;
     
-    // Populate the stakes with data
-    for (const stake of userStakes) {
-      try {
-        const stakeId = stake['id'];
-        console.log("Processing stake ID:", stakeId);
-        
-        // Make sure stake has all required fields
-        if (!stakeId || !stake['amount'] || !stake['minting_start_date'] || !stake['minting_end_date']) {
-          console.error("Stake missing required fields:", stake);
-          continue;
+    // Batch all blockchain calls for better performance
+    console.log(`Checking claim status for ${userStakes.length} stakes...`);
+    const validStakes = userStakes.filter(stake => {
+      const stakeId = stake['id'];
+      if (!stakeId || !stake['amount'] || !stake['minting_start_date'] || !stake['minting_end_date']) {
+        console.error("Stake missing required fields:", stake);
+        return false;
+      }
+      return true;
+    });
+
+    // Check blockchain cache first, then batch remaining calls
+    console.log("Contract address:", liquidHexAddress);
+    console.log("Network:", await provider.getNetwork());
+    
+    const claimStatuses = [];
+    const uncachedStakes = [];
+    const uncachedIndices = [];
+    
+    // Check cache for each stake
+    for (let i = 0; i < validStakes.length; i++) {
+      const stake = validStakes[i];
+      const cachedResult = getBlockchainCache(connectedAccount, stake['id']);
+      
+      if (cachedResult !== null) {
+        claimStatuses[i] = cachedResult;
+        console.log(`Using cached result for stake ${stake['id']}: ${cachedResult}`);
+      } else {
+        uncachedStakes.push(stake);
+        uncachedIndices.push(i);
+      }
+    }
+    
+    // Batch call only uncached stakes
+    if (uncachedStakes.length > 0) {
+      console.log(`Making blockchain calls for ${uncachedStakes.length} uncached stakes`);
+      
+      const uncachedPromises = uncachedStakes.map(async (stake) => {
+        try {
+          const result = await tokenContract.hasClaimedId(stake['id']);
+          // Cache the result
+          setBlockchainCache(connectedAccount, stake['id'], result);
+          return result;
+        } catch (error) {
+          console.error(`Error checking stake ${stake['id']}:`, error);
+          // Return false as default if individual call fails
+          return false;
         }
+      });
+      
+      const uncachedResults = await Promise.all(uncachedPromises);
+      
+      // Fill in the uncached results
+      for (let i = 0; i < uncachedIndices.length; i++) {
+        claimStatuses[uncachedIndices[i]] = uncachedResults[i];
+      }
+    }
+    
+    console.log(`Completed blockchain status check: ${uncachedStakes.length} network calls, ${validStakes.length - uncachedStakes.length} cached`);
+
+    // Process stakes with batched results
+    for (let i = 0; i < validStakes.length; i++) {
+      try {
+        const stake = validStakes[i];
+        const isClaimed = claimStatuses[i];
+        const stakeId = stake['id'];
+        
+        console.log("Processing stake ID:", stakeId, "- Claimed:", isClaimed);
         
         const amount = parseInt(stake['amount']);
         totalAmountSum += amount;
         stakeCountSum++;
         
-        const isClaimed = await tokenContract.hasClaimedId(stakeId);
         const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
         const startDate = parseInt(stake['minting_start_date']);
         const endDate = parseInt(stake['minting_end_date']);
@@ -881,7 +1193,7 @@ async function fetchAndDisplayStakes(address) {
           }
         }
       } catch (error) {
-        console.error(`Error processing stake:`, error, stake);
+        console.error(`Error processing stake:`, error, validStakes[i]);
       }
     }
     
@@ -917,7 +1229,26 @@ async function fetchAndDisplayStakes(address) {
     
   } catch (error) {
     console.error("Error fetching stakes:", error);
-    alert(`Error fetching stakes: ${error.message}`);
+    
+    // Check if it's a contract decode error
+    if (error.code === 'BAD_DATA' && error.info?.method === 'hasClaimedId') {
+      console.error("Contract decode error details:", {
+        code: error.code,
+        method: error.info?.method,
+        signature: error.info?.signature,
+        value: error.value
+      });
+      
+      alert(`Contract Connection Error: Unable to connect to the LiquidHEX contract. This usually means:
+      
+1. You're on the wrong network (should be PulseChain Mainnet - Chain ID 369 or Testnet - Chain ID 943)
+2. The contract address is incorrect
+3. There's a network connectivity issue
+
+Please check your MetaMask network and switch to PulseChain if needed.`);
+    } else {
+      alert(`Error fetching stakes: ${error.message}`);
+    }
   }
 }
 
@@ -1065,6 +1396,9 @@ async function initiateMint(stake) {
         `Transaction sent with hash: ${txHash}`
       );
 
+      // Clear blockchain cache for this address since claim status changed
+      clearBlockchainCacheForAddress(account.value);
+      
       // Update metrics locally
       await fetchAndDisplayStakes(account.value);
     } catch (txError) {
@@ -1195,6 +1529,10 @@ async function handleMint() {
     
     console.log("Transaction Hash:", txHash)
     showNotificationMessage('success', 'Transaction Submitted', `Transaction sent with hash: ${txHash}`);
+    
+    // Clear blockchain cache for this address since claim status may have changed
+    clearBlockchainCacheForAddress(account.value);
+    
     closePopup()
   } catch (error) {
     console.error("Error with manual mint:", error)
@@ -1344,32 +1682,37 @@ function isLocked(stake) {
   return currentTime < stake.startDate
 }
 
-// Computed property for filtered stakes
+// Optimized computed property for filtered stakes with caching
 const filteredStakes = computed(() => {
-  let result = [...stakes.value]
+  if (stakes.value.length === 0) return [];
   
-  // Always sort by start date (earliest first)
-  result.sort((a, b) => a.startDate - b.startDate)
+  // Create a shallow copy to avoid mutating original
+  let result = stakes.value.slice();
   
-  // Apply status filter
-  switch(statusFilter.value) {
-    case 'mintable':
-      result = result.filter(stake => !stake.minted && !isExpired(stake) && !isLocked(stake))
-      break
-    case 'locked':
-      result = result.filter(stake => !stake.minted && isLocked(stake))
-      break
-    case 'minted':
-      result = result.filter(stake => stake.minted)
-      break
-    case 'expired':
-      result = result.filter(stake => !stake.minted && isExpired(stake))
-      break
-    default:
-      // 'all' - no filtering
+  // Always sort by start date (earliest first) - only if not already sorted
+  result.sort((a, b) => a.startDate - b.startDate);
+  
+  // Apply status filter efficiently
+  if (statusFilter.value !== 'all') {
+    const currentTime = Math.floor(Date.now() / 1000);
+    
+    result = result.filter(stake => {
+      switch(statusFilter.value) {
+        case 'mintable':
+          return !stake.minted && currentTime <= stake.endDate && currentTime >= stake.startDate;
+        case 'locked':
+          return !stake.minted && currentTime < stake.startDate;
+        case 'minted':
+          return stake.minted;
+        case 'expired':
+          return !stake.minted && currentTime > stake.endDate;
+        default:
+          return true;
+      }
+    });
   }
   
-  return result
+  return result;
 })
 
 // Add a computed property to determine if viewing own wallet
@@ -1378,35 +1721,43 @@ const isViewingOwnWallet = computed(() => {
     viewedAddress.value.toLowerCase() === account.value.toLowerCase()
 })
 
+// Memoized amount formatter for performance
+const formatAmountCache = new Map();
+function formatAmountMemoized(amount) {
+  if (formatAmountCache.has(amount)) {
+    return formatAmountCache.get(amount);
+  }
+  const formatted = (amount / 1e8).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 8
+  }) + ' LHEX';
+  formatAmountCache.set(amount, formatted);
+  return formatted;
+}
+
 // Computed property for display amount in manual mint form
 const displayAmount = computed(() => {
   if (!mintData.value.amount) return '';
   const amount = Number(mintData.value.amount);
-  return (amount / 1e8).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 8
-  }) + ' LHEX';
+  return formatAmountMemoized(amount);
 })
 
 // Computed property for display amount in signature form
 const displaySignatureAmount = computed(() => {
   if (!signatureData.value.amount) return '';
   const amount = Number(signatureData.value.amount);
-  return (amount / 1e8).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 8
-  }) + ' LHEX';
+  return formatAmountMemoized(amount);
 })
 
 // Watch for changes to filtered stakes or chart view to update chart
+// Optimized: removed deep watching, watch specific properties instead
 watch(
-  [filteredStakes, chartView],
+  [() => stakes.value.length, chartView, statusFilter, hideExpired, hideMinted],
   () => {
     if (stakes.value.length > 0) {
-      renderChart()
+      debouncedRenderChart()
     }
-  },
-  { deep: true }
+  }
 )
 
 // Function to render the chart (using D3.js)
@@ -1423,6 +1774,9 @@ function renderChart() {
     createChart()
   }
 }
+
+// Create debounced version of renderChart for performance
+const debouncedRenderChart = debounce(renderChart, 300)
 
 // Function to create the chart with D3.js
 function createChart() {
@@ -1929,10 +2283,10 @@ onMounted(() => {
   }
   }
   
-  // Handle window resize for chart
+  // Handle window resize for chart (debounced for performance)
   const handleResize = () => {
     if (stakes.value.length > 0) {
-      renderChart()
+      debouncedRenderChart()
     }
   }
   
@@ -1945,6 +2299,11 @@ onMounted(() => {
       window.ethereum.removeAllListeners('chainChanged')
     }
     window.removeEventListener('resize', handleResize)
+    
+    // Clear caches to free memory
+    csvMemoryCache.clear()
+    blockchainCache.clear()
+    formatAmountCache.clear()
   })
 })
 
@@ -1976,7 +2335,7 @@ function applyDateFilter() {
       return
     }
     isDateFilterActive.value = true
-    renderChart()
+    debouncedRenderChart()
   }
 }
 
@@ -1985,7 +2344,7 @@ function resetDateFilter() {
   chartStartDate.value = ''
   chartEndDate.value = ''
   isDateFilterActive.value = false
-  renderChart()
+  debouncedRenderChart()
 }
 
 // Handle stake ID input for manual mint form
