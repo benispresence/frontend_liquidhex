@@ -2277,10 +2277,19 @@ onMounted(() => {
       }
     })
     
-    // Check if already connected
-    if (window.ethereum.isConnected()) {
-    connectToMetaMask()
-  }
+    // Check if already connected by requesting accounts silently
+    window.ethereum.request({ method: 'eth_accounts' })
+      .then(async (accounts) => {
+        if (accounts && accounts.length > 0) {
+          console.log("Wallet already connected, auto-connecting...", accounts[0])
+          await connectToMetaMask()
+        } else {
+          console.log("No wallet connected on page load")
+        }
+      })
+      .catch((error) => {
+        console.error("Error checking for existing connection:", error)
+      })
   }
   
   // Handle window resize for chart (debounced for performance)
