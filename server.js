@@ -10,6 +10,16 @@ const PORT = process.env.PORT || 5000;
 
 app.use(express.static(path.join(__dirname, 'dist')));
 
+app.use('/merkle_tree_proofs', express.static(path.join(__dirname, 'merkle_tree_proofs')));
+
+app.get('/merkle_tree_base.csv', (req, res) => {
+  res.sendFile(path.join(__dirname, 'merkle_tree_base.csv'));
+});
+
+app.get('/eligible_stakes.csv', (req, res) => {
+  res.sendFile(path.join(__dirname, 'eligible_stakes.csv'));
+});
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
