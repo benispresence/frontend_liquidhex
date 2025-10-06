@@ -881,12 +881,20 @@ async function fetchCSVWithRetry(url, maxRetries = 3, retryDelay = 1000) {
   // Fetch from network as last resort
   for (let i = 0; i < maxRetries; i++) {
     try {
+      const fullUrl = new URL(url, window.location.origin).href;
       console.log(`Fetching ${url} from network (attempt ${i + 1}/${maxRetries})`);
+      console.log(`Full URL: ${fullUrl}`);
+      console.log(`Current origin: ${window.location.origin}`);
+      
       const response = await fetch(url);
+      console.log(`Response status: ${response.status}, Content-Type: ${response.headers.get('content-type')}`);
+      
       if (!response.ok) {
-        throw new Error(`Failed to fetch ${url}: ${response.status}`)
+        throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`)
       }
       const csvText = await response.text();
+      console.log(`CSV text loaded, length: ${csvText.length} bytes`);
+      
       const parsedData = Papa.parse(csvText, { header: true }).data;
       
       // Cache in both memory and persistent storage
@@ -897,6 +905,11 @@ async function fetchCSVWithRetry(url, maxRetries = 3, retryDelay = 1000) {
       return parsedData;
     } catch (error) {
       console.error(`Attempt ${i + 1} to fetch CSV failed:`, error);
+      console.error(`Error details:`, {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
       if (i === maxRetries - 1) throw error;
       await new Promise(resolve => setTimeout(resolve, retryDelay));
     }
